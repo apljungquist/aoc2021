@@ -2,11 +2,10 @@
 
 import logging
 import pathlib
+import textwrap
 
 import fire as fire
 import more_itertools
-import textwrap
-
 import pytest
 
 logger = logging.getLogger(__name__)

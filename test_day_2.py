@@ -3,18 +3,25 @@ import collections
 import logging
 import pathlib
 
-import fire as fire
-import more_itertools
-import textwrap
-
-import pytest
-
 logger = logging.getLogger(__name__)
 PROJECT_ROOT = pathlib.Path(__file__).parent
+INPUTS_PATH = PROJECT_ROOT / "day" / __file__.split(".")[0].split("_")[-1]
 
 
 def test_example_1():
-    assert solution_1(PROJECT_ROOT / "day" / "2" / "example1.txt") == 150
+    assert solution_1(INPUTS_PATH / "example.txt") == 150
+
+
+def test_input_1():
+    assert solution_1(INPUTS_PATH / "input.txt") == 2187380
+
+
+def test_example_2():
+    assert solution_2(INPUTS_PATH / "example.txt") == 900
+
+
+def test_input_2():
+    assert solution_2(INPUTS_PATH / "input.txt") == 2086357770
 
 
 def _commands(text: str):
@@ -27,7 +34,7 @@ def _commands(text: str):
         yield direction, int(distance)
 
 
-def solution_1(path=PROJECT_ROOT / "day" / "2" / "input.txt"):
+def solution_1(path):
     aggregate = collections.defaultdict(int)
     for direction, distance in _commands(path.read_text()):
         aggregate[direction] += distance
@@ -37,10 +44,8 @@ def solution_1(path=PROJECT_ROOT / "day" / "2" / "input.txt"):
     assert not aggregate
     return net_forward * net_down
 
-def test_example_2():
-    assert solution_2(PROJECT_ROOT / "day" / "2" / "example1.txt") == 900
 
-def solution_2(path=PROJECT_ROOT / "day" / "2" / "input.txt"):
+def solution_2(path):
     aim = 0
     net_forward = 0
     net_down = 0
@@ -51,13 +56,9 @@ def solution_2(path=PROJECT_ROOT / "day" / "2" / "input.txt"):
             aim -= x
         elif direction == "forward":
             net_forward += x
-            net_down += aim*x
+            net_down += aim * x
         else:
             assert False
         logger.info("After %s %d we are at %d, %d", direction, x, net_forward, net_down)
 
     return net_forward * net_down
-
-
-if __name__ == "__main__":
-    fire.Fire()
