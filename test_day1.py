@@ -12,6 +12,7 @@ import pytest
 logger = logging.getLogger(__name__)
 PROJECT_ROOT = pathlib.Path(__file__).parent
 
+
 @pytest.mark.parametrize(
     "text, result",
     [
@@ -46,15 +47,18 @@ def solution_1(text):
     distances = [int(line.strip()) for line in text.splitlines()]
     return sum(left < right for left, right in more_itertools.pairwise(distances))
 
+
 def test_solution_2_by_example():
-    assert solution_2(PROJECT_ROOT/"day"/"1"/"example2.txt") == 5
+    assert solution_2(PROJECT_ROOT / "day" / "1" / "example2.txt") == 5
+
 
 def solution_2(path):
     path = pathlib.Path(path)
     text = path.read_text()
     nums = [int(line.strip().split()[0]) for line in text.splitlines()]
     sums = [sum(triple) for triple in more_itertools.triplewise(nums)]
-    return sum(left<right for left, right in more_itertools.pairwise(sums))
+    return sum(left < right for left, right in more_itertools.pairwise(sums))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     fire.Fire()
