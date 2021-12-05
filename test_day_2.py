@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-import collections
 import logging
+import operator
 import pathlib
+
+import more_itertools
 
 logger = logging.getLogger(__name__)
 PROJECT_ROOT = pathlib.Path(__file__).parent
@@ -30,14 +32,16 @@ def _commands(text: str):
             logger.warning("Skipping line %s", line)
             continue
 
-        direction, distance = line.strip().split()
-        yield direction, int(distance)
-
+        direction, magnitude = line.strip().split()
+        yield direction, int(magnitude)
 
 def solution_1(path):
-    aggregate = collections.defaultdict(int)
-    for direction, distance in _commands(path.read_text()):
-        aggregate[direction] += distance
+    aggregate = more_itertools.map_reduce(
+        _commands(path.read_text()),
+        keyfunc=operator.itemgetter(0),
+        valuefunc=operator.itemgetter(1),
+        reducefunc=sum
+    )
 
     net_forward = aggregate.pop("forward", 0)
     net_down = aggregate.pop("down", 0) - aggregate.pop("up", 0)
@@ -49,16 +53,16 @@ def solution_2(path):
     aim = 0
     net_forward = 0
     net_down = 0
-    for direction, x in _commands(path.read_text()):
+    for direction, magnitude in _commands(path.read_text()):
         if direction == "down":
-            aim += x
+            aim += magnitude
         elif direction == "up":
-            aim -= x
+            aim -= magnitude
         elif direction == "forward":
-            net_forward += x
-            net_down += aim * x
+            net_forward += magnitude
+            net_down += aim * magnitude
         else:
             assert False
-        logger.info("After %s %d we are at %d, %d", direction, x, net_forward, net_down)
+        logger.info("After %s %d we are at %d, %d", direction, magnitude, net_forward, net_down)
 
     return net_forward * net_down
