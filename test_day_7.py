@@ -4,6 +4,7 @@ import logging
 import pathlib
 
 logger = logging.getLogger(__name__)
+
 PROJECT_ROOT = pathlib.Path(__file__).parent
 INPUTS_PATH = PROJECT_ROOT / "day" / __file__.split(".")[0].split("_")[-1]
 
@@ -33,21 +34,24 @@ def solution_2(path):
 
 
 def test_example_1():
-    assert solution_1(INPUTS_PATH / "example.txt") == 37
+    actual = solution_1(INPUTS_PATH / "example.txt")
+    expected = 37
+    assert actual == expected
 
 
 def test_input_1():
-    assert solution_1(INPUTS_PATH / "input.txt") == 342641
+    actual = solution_1(INPUTS_PATH / "input.txt")
+    expected = 342641
+    assert actual == expected
 
 
 def test_example_2():
-    assert solution_2(INPUTS_PATH / "example.txt") == 168
+    actual = solution_2(INPUTS_PATH / "example.txt")
+    expected = 168
+    assert actual == expected
 
 
 def test_input_2():
-    assert (
-        solution_2(
-            INPUTS_PATH / "input.txt",
-        )
-        == 93006301
-    )
+    actual = solution_2(INPUTS_PATH / "input.txt")
+    expected = 93006301
+    assert actual == expected
