@@ -2,7 +2,6 @@
 import collections
 import logging
 import pathlib
-import statistics
 
 logger = logging.getLogger(__name__)
 PROJECT_ROOT = pathlib.Path(__file__).parent

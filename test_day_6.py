@@ -58,4 +58,9 @@ def test_example_2():
 
 
 def test_input_2():
-    assert solution_2(INPUTS_PATH / "input.txt", ) == 1675781200288
+    assert (
+        solution_2(
+            INPUTS_PATH / "input.txt",
+        )
+        == 1675781200288
+    )
