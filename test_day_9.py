@@ -62,7 +62,13 @@ def solution_2(path):
                 if walls2[r, c] == 1:
                     continue
 
-                b = max(basins2[r, c], basins2[r, c - 1], basins2[r, c + 1], basins2[r - 1, c], basins2[r + 1, c])
+                b = max(
+                    basins2[r, c],
+                    basins2[r, c - 1],
+                    basins2[r, c + 1],
+                    basins2[r - 1, c],
+                    basins2[r + 1, c],
+                )
                 if b and basins2[r, c] != b:
                     making_progress = True
                     basins2[r, c] = b
