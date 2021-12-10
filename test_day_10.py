@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import logging
 import pathlib
+import statistics
 
 logger = logging.getLogger(__name__)
 PROJECT_ROOT = pathlib.Path(__file__).parent
@@ -21,29 +22,50 @@ POINTS = {
     ">": 25137,
 }
 
+AUTOCOMPLETE_POINTS = {
+    ")": 1,
+    "]": 2,
+    "}": 3,
+    ">": 4,
+}
 
-def find_illegal(line):
+
+def parse_line(line):
     stack = []
     for c in line:
         if c in OPEN2CLOSE:
             stack.append(c)
         elif c in CLOSE2OPEN:
             if stack[-1] != CLOSE2OPEN[c]:
-                return c
+                return stack, c
             stack.pop()
         else:
             assert False
-    return None
+    return stack, None
+
+
+def autocomplete_score(stack):
+    result = 0
+    for c in stack[::-1]:
+        result *= 5
+        result += AUTOCOMPLETE_POINTS[OPEN2CLOSE[c]]
+    return result
 
 
 def solution_1(path):
     return sum(
-        POINTS.get(find_illegal(line), 0) for line in path.read_text().splitlines()
+        POINTS.get(parse_line(line)[1], 0) for line in path.read_text().splitlines()
     )
 
 
 def solution_2(path):
-    raise NotImplementedError
+    incomplete = [
+        parse_line(line)[0]
+        for line in path.read_text().splitlines()
+        if parse_line(line)[1] is None
+    ]
+    scores = [autocomplete_score(stack) for stack in incomplete]
+    return statistics.median(scores)
 
 
 def test_example_1():
@@ -60,11 +82,11 @@ def test_input_1():
 
 def test_example_2():
     actual = solution_2(INPUTS_PATH / "example.txt")
-    expected = 1134
+    expected = 288957
     assert actual == expected
 
 
 def test_input_2():
     actual = solution_2(INPUTS_PATH / "input.txt")
-    expected = 585648
+    expected = 2768166558
     assert actual == expected
