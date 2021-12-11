@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import itertools
 import logging
 import operator
 import pathlib
@@ -87,7 +88,14 @@ def solution_1(path):
 
 
 def solution_2(path):
-    raise NotImplementedError
+    energy_levels = _read_energy_levels(path)
+    max_row = max(map(operator.itemgetter(0), energy_levels))
+    max_col = max(map(operator.itemgetter(1), energy_levels))
+    for i in itertools.count():
+        if not any(energy_levels.values()):
+            break
+        _step(energy_levels, max_row, max_col)
+    return i
 
 
 @pytest.mark.parametrize(
@@ -181,11 +189,11 @@ def test_input_1():
 
 def test_example_2():
     actual = solution_2(INPUTS_PATH / "example.txt")
-    expected = 288957
+    expected = 195
     assert actual == expected
 
 
 def test_input_2():
     actual = solution_2(INPUTS_PATH / "input.txt")
-    expected = 2768166558
+    expected = 494
     assert actual == expected
