@@ -28,8 +28,6 @@ def _rows(data):
 
 # How hard was the problem?
 # Proxy: For each problem, how long did it take to solve the problem for members who compete on time
-
-
 def _plot_difficulty(ax, df):
     member_stats = df.groupby("member")[["ts", "stars"]].max()
     active_members = frozenset(
@@ -60,15 +58,21 @@ def _plot_difficulty(ax, df):
         palette=sns.color_palette("deep"),
         ax=ax,
     )
+    # Legend is more confusing than helpful and fixing is a pain
+    ax.get_legend().remove()
 
 
 # How many people lose interest?
 # Proxy: For each problem, how many members completed the problem
 # TODO: Consider changing definition of interest to also include members who completed a later problem
 def _plot_engagement(ax, df):
+    df["engagement (submissions)"] = 1
+    df["active engagement (submissions)"] = df["ts"] < 86400
     df = (
-        df.groupby(["day", "part"])[["member"]]
-        .count()
+        df.groupby(["day", "part"])[
+            ["engagement (submissions)", "active engagement (submissions)"]
+        ]
+        .sum()
         .rename(columns={"member": "engagement (submissions)"})
         .reset_index()
     )
@@ -81,9 +85,23 @@ def _plot_engagement(ax, df):
         palette=sns.color_palette("deep"),
         ax=ax,
     )
+    # Note that this number does not match the number of submissions for the
+    # difficulty graph since here the days are independent
+    x = sns.barplot(
+        data=df,
+        x="day",
+        y="active engagement (submissions)",
+        hue="part",
+        dodge=True,
+        palette=sns.color_palette("pastel"),
+        ax=ax,
+    )
+    ax.set_ylabel("[active] engagement (submissions)")
+    # Legend is more confusing than helpful and fixing is a pain
+    ax.get_legend().remove()
 
 
-def main(path: Union[None, str, pathlib.Path]=None):
+def main(path: Union[None, str, pathlib.Path] = None):
     """Plot difficulty and engagement for private leaderboard
 
     :param path: Location of json dump from leaderboard api.
