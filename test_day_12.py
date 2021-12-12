@@ -23,22 +23,33 @@ def _read_graph(path: pathlib.Path):
     return result
 
 
-def _paths(graph: dict[str, str]):
+def _paths(graph: dict[str, str], num_extra=0):
     return _paths_helper(
-        graph, frozenset(k for k in graph if k.islower() and k != "start"), ("start",)
+        graph,
+        frozenset(k for k in graph if k.islower() and k != "start"),
+        ("start",),
+        num_extra,
     )
 
 
-def _paths_helper(graph: dict[str, str], remaining: frozenset[str], path):
+def _paths_helper(graph: dict[str, str], remaining: frozenset[str], path, num_extra):
+    assert num_extra >= 0
     if path[-1] == "end":
         yield path
         return
 
     for dst in graph[path[-1]]:
-        if dst.isupper() or dst in remaining:
+        if dst == "start":
+            continue
+        if dst.isupper() or dst in remaining or num_extra:
+            if dst.islower() and dst not in remaining:
+                new_num_extra = num_extra - 1
+            else:
+                new_num_extra = num_extra
+
             new_remaining = frozenset(x for x in remaining if x != dst)
             new_path = path + (dst,)
-            yield from _paths_helper(graph, new_remaining, new_path)
+            yield from _paths_helper(graph, new_remaining, new_path, new_num_extra)
 
 
 def solution_1(path):
@@ -47,7 +58,9 @@ def solution_1(path):
 
 
 def solution_2(path):
-    raise NotImplementedError
+
+    graph = _read_graph(path)
+    return more_itertools.ilen(_paths(graph, 1))
 
 
 def test_example_1():
@@ -76,11 +89,23 @@ def test_input_1():
 
 def test_example_2():
     actual = solution_2(INPUTS_PATH / "example.txt")
-    expected = 195
+    expected = 36
+    assert actual == expected
+
+
+def test_large_example_2():
+    actual = solution_2(INPUTS_PATH / "large_example.txt")
+    expected = 103
+    assert actual == expected
+
+
+def test_larger_example_2():
+    actual = solution_2(INPUTS_PATH / "larger_example.txt")
+    expected = 3509
     assert actual == expected
 
 
 def test_input_2():
     actual = solution_2(INPUTS_PATH / "input.txt")
-    expected = 494
+    expected = 147848
     assert actual == expected
