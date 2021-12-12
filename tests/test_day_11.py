@@ -8,8 +8,7 @@ import textwrap
 import pytest
 
 logger = logging.getLogger(__name__)
-PROJECT_ROOT = pathlib.Path(__file__).parents[1]
-INPUTS_PATH = PROJECT_ROOT / "day" / __file__.split(".")[0].split("_")[-1]
+INPUTS_PATH = pathlib.Path(__file__).with_suffix("")
 
 
 def _fmt_energy_levels(energy_levels, max_row, max_col):
