@@ -1,6 +1,9 @@
+#!/usr/bin/env python3
 import json
 import pathlib
+from typing import Union
 
+import fire
 import matplotlib.pyplot as plt
 import more_itertools
 import pandas as pd
@@ -62,17 +65,17 @@ def _plot_difficulty(ax, df):
 # How many people lose interest?
 # Proxy: For each problem, how many members completed the problem
 # TODO: Consider changing definition of interest to also include members who completed a later problem
-def _plot_interest(ax, df):
+def _plot_engagement(ax, df):
     df = (
         df.groupby(["day", "part"])[["member"]]
         .count()
-        .rename(columns={"member": "interest (submissions)"})
+        .rename(columns={"member": "engagement (submissions)"})
         .reset_index()
     )
     sns.barplot(
         data=df,
         x="day",
-        y="interest (submissions)",
+        y="engagement (submissions)",
         hue="part",
         dodge=True,
         palette=sns.color_palette("deep"),
@@ -80,16 +83,24 @@ def _plot_interest(ax, df):
     )
 
 
-def main():
-    path = more_itertools.one(pathlib.Path(__file__).with_suffix("").glob("*.json"))
+def main(path: Union[None, str, pathlib.Path]=None):
+    """Plot difficulty and engagement for private leaderboard
+
+    :param path: Location of json dump from leaderboard api.
+    """
+    if path is None:
+        path = more_itertools.one(pathlib.Path.cwd().glob("*.json"))
+    else:
+        path = pathlib.Path(path)
+
     df = pd.DataFrame(_rows(json.loads(path.read_text())))
     df["difficulty (hours)"] = df["ts"] / 3600
 
     _, axs = plt.subplots(2, 1, sharex=True)
     _plot_difficulty(axs[0], df)
-    _plot_interest(axs[1], df)
+    _plot_engagement(axs[1], df)
     plt.show()
 
 
 if __name__ == "__main__":
-    main()
+    fire.Fire(main)
