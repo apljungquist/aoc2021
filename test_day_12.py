@@ -4,6 +4,7 @@ import logging
 import pathlib
 
 import more_itertools
+import pytest
 
 logger = logging.getLogger(__name__)
 PROJECT_ROOT = pathlib.Path(__file__).parent
@@ -64,49 +65,27 @@ def solution_2(path):
     return more_itertools.ilen(_paths(graph, 1))
 
 
-def test_example_1():
-    actual = solution_1(INPUTS_PATH / "example.txt")
-    expected = 10
-    assert actual == expected
+@pytest.mark.parametrize(
+    "stem, expected",
+    [
+        ("example", 10),
+        ("example_l", 19),
+        ("example_xl", 226),
+        ("input", 4720),
+    ],
+)
+def test_part_1_on_examples(stem, expected):
+    assert solution_1(INPUTS_PATH / f"{stem}.txt") == expected
 
 
-def test_large_example_1():
-    actual = solution_1(INPUTS_PATH / "large_example.txt")
-    expected = 19
-    assert actual == expected
-
-
-def test_larger_example_1():
-    actual = solution_1(INPUTS_PATH / "larger_example.txt")
-    expected = 226
-    assert actual == expected
-
-
-def test_input_1():
-    actual = solution_1(INPUTS_PATH / "input.txt")
-    expected = 4720
-    assert actual == expected
-
-
-def test_example_2():
-    actual = solution_2(INPUTS_PATH / "example.txt")
-    expected = 36
-    assert actual == expected
-
-
-def test_large_example_2():
-    actual = solution_2(INPUTS_PATH / "large_example.txt")
-    expected = 103
-    assert actual == expected
-
-
-def test_larger_example_2():
-    actual = solution_2(INPUTS_PATH / "larger_example.txt")
-    expected = 3509
-    assert actual == expected
-
-
-def test_input_2():
-    actual = solution_2(INPUTS_PATH / "input.txt")
-    expected = 147848
-    assert actual == expected
+@pytest.mark.parametrize(
+    "stem, expected",
+    [
+        ("example", 36),
+        ("example_l", 103),
+        ("example_xl", 3509),
+        ("input", 147848),
+    ],
+)
+def test_part_2_on_examples(stem, expected):
+    assert solution_2(INPUTS_PATH / f"{stem}.txt") == expected
