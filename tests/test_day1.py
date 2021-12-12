@@ -9,7 +9,7 @@ import more_itertools
 import pytest
 
 logger = logging.getLogger(__name__)
-PROJECT_ROOT = pathlib.Path(__file__).parent
+PROJECT_ROOT = pathlib.Path(__file__).parents[1]
 
 
 @pytest.mark.parametrize(
