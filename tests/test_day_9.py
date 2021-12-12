@@ -105,5 +105,5 @@ def test_input_2_bound():
 
 def test_input_2():
     actual = solution_2(INPUTS_PATH / "input.txt")
-    expected = 585648
+    expected = 1123524
     assert actual == expected
