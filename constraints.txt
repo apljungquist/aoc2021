@@ -1,0 +1,65 @@
+click==8.0.3
+    # via pip-tools
+cycler==0.11.0
+    # via matplotlib
+fire==0.4.0
+    # via -r requirements/misc.txt
+fonttools==4.28.3
+    # via matplotlib
+kiwisolver==1.3.2
+    # via matplotlib
+matplotlib==3.5.1
+    # via
+    #   -r requirements/misc.txt
+    #   seaborn
+more-itertools==8.12.0
+    # via -r requirements/misc.txt
+numpy==1.21.4
+    # via
+    #   -r requirements/misc.txt
+    #   matplotlib
+    #   pandas
+    #   scipy
+    #   seaborn
+packaging==21.3
+    # via matplotlib
+pandas==1.3.4
+    # via
+    #   -r requirements/misc.txt
+    #   seaborn
+pep517==0.12.0
+    # via pip-tools
+pillow==8.4.0
+    # via matplotlib
+pip-tools==6.4.0
+    # via -r requirements/misc.txt
+pyparsing==3.0.6
+    # via
+    #   matplotlib
+    #   packaging
+python-dateutil==2.8.2
+    # via
+    #   matplotlib
+    #   pandas
+pytz==2021.3
+    # via pandas
+scipy==1.7.3
+    # via seaborn
+seaborn==0.11.2
+    # via -r requirements/misc.txt
+six==1.16.0
+    # via
+    #   fire
+    #   python-dateutil
+termcolor==1.1.0
+    # via fire
+tomli==1.2.2
+    # via pep517
+wheel==0.37.0
+    # via pip-tools
+
+# The following packages are considered to be unsafe in a requirements file:
+pip==21.3.1
+    # via pip-tools
+setuptools==59.5.0
+    # via pip-tools
