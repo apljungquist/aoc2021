@@ -48,16 +48,34 @@ def solution_1(text):
     return sum(left < right for left, right in more_itertools.pairwise(distances))
 
 
-def test_solution_2_by_example():
-    assert solution_2(INPUTS_PATH / "example2.txt") == 5
-
-
 def solution_2(path):
     path = pathlib.Path(path)
     text = path.read_text()
     nums = [int(line.strip().split()[0]) for line in text.splitlines()]
     sums = [sum(triple) for triple in more_itertools.triplewise(nums)]
     return sum(left < right for left, right in more_itertools.pairwise(sums))
+
+
+@pytest.mark.parametrize(
+    "stem, expected",
+    [
+        ("example", 7),
+        ("input", 1139),
+    ],
+)
+def test_part_1_on_examples(stem, expected):
+    assert solution_1(INPUTS_PATH / f"{stem}.txt") == expected
+
+
+@pytest.mark.parametrize(
+    "stem, expected",
+    [
+        ("example", 5),
+        ("input", 1103),
+    ],
+)
+def test_part_2_on_examples(stem, expected):
+    assert solution_2(INPUTS_PATH / f"{stem}.txt") == expected
 
 
 if __name__ == "__main__":
