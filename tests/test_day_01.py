@@ -10,6 +10,7 @@ import pytest
 
 logger = logging.getLogger(__name__)
 PROJECT_ROOT = pathlib.Path(__file__).parents[1]
+INPUTS_PATH = PROJECT_ROOT / "day" / __file__.split(".")[0].split("_")[-1]
 
 
 @pytest.mark.parametrize(
@@ -48,7 +49,7 @@ def solution_1(text):
 
 
 def test_solution_2_by_example():
-    assert solution_2(PROJECT_ROOT / "day" / "1" / "example2.txt") == 5
+    assert solution_2(INPUTS_PATH / "example2.txt") == 5
 
 
 def solution_2(path):
