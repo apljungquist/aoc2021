@@ -15,52 +15,79 @@ def _rows(data):
             for part, part_data in day_data.items():
                 part = int(part)
                 yield {
-                    "member": member,
+                    "member": int(member),
                     "day": day,
                     "part": part,
                     "ts": part_data["get_star_ts"] - 86400 * (day + offset) - 5 * 3600,
+                    "stars": member_data["stars"],
                 }
+
+
+# How hard was the problem?
+# Proxy: For each problem, how long did it take to solve the problem for members who compete on time
+
+
+def _plot_difficulty(ax, df):
+    member_stats = df.groupby("member")[["ts", "stars"]].max()
+    active_members = frozenset(
+        member_stats[
+            (member_stats["ts"] < 86400)
+            & (member_stats["stars"] == member_stats["stars"].max())
+        ].index.values
+    )
+    df = df[df["member"].isin(active_members)]
+
+    sns.boxplot(
+        data=df,
+        x="day",
+        y="difficulty (hours)",
+        hue="part",
+        showfliers=False,
+        palette=sns.color_palette("pastel"),
+        ax=ax,
+    )
+    sns.stripplot(
+        data=df,
+        x="day",
+        y="difficulty (hours)",
+        hue="part",
+        dodge=True,
+        size=5,
+        jitter=0.35,
+        palette=sns.color_palette("deep"),
+        ax=ax,
+    )
+
+
+# How many people lose interest?
+# Proxy: For each problem, how many members completed the problem
+# TODO: Consider changing definition of interest to also include members who completed a later problem
+def _plot_interest(ax, df):
+    df = (
+        df.groupby(["day", "part"])[["member"]]
+        .count()
+        .rename(columns={"member": "interest (submissions)"})
+        .reset_index()
+    )
+    sns.barplot(
+        data=df,
+        x="day",
+        y="interest (submissions)",
+        hue="part",
+        dodge=True,
+        palette=sns.color_palette("deep"),
+        ax=ax,
+    )
 
 
 def main():
     path = more_itertools.one(pathlib.Path(__file__).with_suffix("").glob("*.json"))
     df = pd.DataFrame(_rows(json.loads(path.read_text())))
-    df["dt"] = pd.to_datetime(df["ts"], unit="s")
-    df["minutes"] = df["ts"] / 60
-    df["hours"] = df["ts"] / 3600
-    df["x"] = df["day"] + df["part"] / 4 - 0.5
+    df["difficulty (hours)"] = df["ts"] / 3600
 
-    participants = (
-        df.groupby(["day", "part"])
-        .count()[["member"]]
-        .rename(columns={"member": "total"})
-    )
-    participants["active"] = (
-        df[df["ts"] < 86400].groupby(["day", "part"]).count()["member"]
-    )
-    print(participants.to_string())
-
-    data = df[df["ts"] < 86400]
-    sns.boxplot(
-        data=data,
-        x="day",
-        y="hours",
-        hue="part",
-        showfliers=False,
-        # saturation=0,
-        palette=sns.color_palette("pastel"),
-    )
-    sns.stripplot(
-        data=data,
-        x="day",
-        y="hours",
-        hue="part",
-        dodge=True,
-        size=5,
-        jitter=0.35,
-        palette=sns.color_palette("deep")
-        # color="0.25",
-    )
+    _, axs = plt.subplots(2, 1, sharex=True)
+    _plot_difficulty(axs[0], df)
+    _plot_interest(axs[1], df)
     plt.show()
 
 
