@@ -27,7 +27,6 @@ def _read_folds(path: pathlib.Path):
 
 
 def _folded_horizontal(points, location):
-    print("hor", location)
     assert not any(y == location for _, y in points)
     return {(x, y) if y < location else (x, 2 * location - y) for x, y in points}
 
@@ -64,7 +63,11 @@ def solution_1(path):
 
 
 def solution_2(path):
-    raise NotImplementedError
+    points = _read_points(path)
+    folds = _read_folds(path)
+    folded = _folded(points, folds)
+    print()
+    print(_format_points(folded))
 
 
 @pytest.mark.parametrize(
