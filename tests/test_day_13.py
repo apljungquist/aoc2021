@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
+import io
 import logging
 import pathlib
 import re
 
 import more_itertools
+import numpy as np
 import pytest
 
 logger = logging.getLogger(__name__)
@@ -76,6 +78,15 @@ def _read_points(path: pathlib.Path):
     return result
 
 
+def _as_array(points):
+    num_row = max(y for _, y in points) + 1
+    num_col = max(x for x, _ in points) + 1
+    result = np.full((num_row, num_col), False)
+    for p in points:
+        result[p[::-1]] = True
+    return result
+
+
 def _read_folds(path: pathlib.Path):
     return [
         (m[0], int(m[1]))
@@ -84,33 +95,37 @@ def _read_folds(path: pathlib.Path):
 
 
 def _folded_horizontal(points, location):
-    assert not any(y == location for _, y in points)
-    return {(x, y) if y < location else (x, 2 * location - y) for x, y in points}
+    result = points[:location, :]
+    lower = points[location + 1 :, :]
+    result[None : -lower.shape[0] - 1 : -1, :] |= lower
+    return result
 
 
 def _folded_vertical(points, location):
-    assert not any(x == location for x, _ in points)
-    return {(x, y) if x < location else (2 * location - x, y) for x, y in points}
+    result = points[:, :location]
+    lower = points[:, location + 1 :]
+    result[:, None : -lower.shape[1] - 1 : -1] |= lower
+    return result
 
 
 def _folded(points, folds):
     for direction, location in folds:
-        if direction == "y":
-            points = _folded_horizontal(points, location)
-        elif direction == "x":
-            points = _folded_vertical(points, location)
-        else:
-            assert False
+        match direction:
+            case "x":
+                points = _folded_vertical(points, location)
+            case "y":
+                points = _folded_horizontal(points, location)
+            case _:
+                raise ValueError
     return points
 
 
 def _format_points(points):
-    max_row = max(y for _, y in points)
-    max_col = max(x for x, _ in points)
-    return "\n".join(
-        "".join("#" if (x, y) in points else "." for x in range(max_col + 1))
-        for y in range(max_row + 1)
-    )
+    buffer = io.StringIO()
+    cells = np.full(points.shape, ".")
+    cells[points] = "#"
+    np.savetxt(buffer, cells, fmt="%s", delimiter="")
+    return buffer.getvalue()
 
 
 def _parse_points(text):
@@ -136,40 +151,40 @@ REVERSE = {frozenset(v): k for k, v in ALPHABET.items()}
 assert len(ALPHABET) == len(REVERSE)
 
 
-def _possible_decodings(points):
-    if not any(x == 0 for x, _ in points):
-        yield ""
+def _possible_decodings(points: np.ndarray):
+    for letter in ALPHABET:
+        if letter:
+            template = _as_array(ALPHABET[letter])
+        else:
+            template = np.full((6, 1), False)
 
-    FIVE = frozenset((x, y) for x, y in points if x < 5)
-    print("")
-    print(_format_points(FIVE))
-    if any(x == 4 for x, _ in FIVE) and FIVE in REVERSE:
-        yield REVERSE[FIVE]
-
-    FOUR = frozenset((x, y) for x, y in FIVE if x < 4)
-    if any(x == 3 for x, _ in FIVE) and FOUR in REVERSE:
-        yield REVERSE[FOUR]
+        candidate = points[: template.shape[0], : template.shape[1]]
+        print("-" * 80)
+        print(_format_points(template))
+        print()
+        print(_format_points(candidate))
+        if np.all(candidate == template):
+            yield letter
 
 
 def _decode_points(points, path=()):
-    if not points:
+    if not points.shape[1]:
         return "".join(path)
 
     letter = more_itertools.one(_possible_decodings(points))
     width = max([x for x, _ in ALPHABET[letter]], default=0) + 1
-    return _decode_points(
-        {(x - width, y) for x, y in points if x >= width}, path + (letter,)
-    )
+
+    return _decode_points(points[:, width:], path + (letter,))
 
 
 def solution_1(path):
-    points = _read_points(path)
+    points = _as_array(_read_points(path))
     folds = _read_folds(path)
-    return len(_folded(points, folds[:1]))
+    return _folded(points, folds[:1]).sum()
 
 
 def solution_2(path):
-    points = _read_points(path)
+    points = _as_array(_read_points(path))
     folds = _read_folds(path)
     folded = _folded(points, folds)
     return _decode_points(folded)
