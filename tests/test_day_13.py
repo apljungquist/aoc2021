@@ -67,13 +67,10 @@ Z = """\
 
 
 def _read_points(path: pathlib.Path):
-    result = set()
-    for line in path.read_text().splitlines():
-        if not line:
-            break
-        parts = line.split(",")
-        result.add((int(parts[0]), int(parts[1])))
-    return result
+    return {
+        (int(m[0]), int(m[1]))
+        for m in re.findall(r"^(\d+),(\d+)$", path.read_text(), re.MULTILINE)
+    }
 
 
 def _read_folds(path: pathlib.Path):
@@ -83,25 +80,24 @@ def _read_folds(path: pathlib.Path):
     ]
 
 
-def _folded_horizontal(points, location):
-    assert not any(y == location for _, y in points)
-    return {(x, y) if y < location else (x, 2 * location - y) for x, y in points}
+def _folded_horizontal(points, row):
+    assert not any(y == row for _, y in points)
+    return {(x, y) if y < row else (x, 2 * row - y) for x, y in points}
 
 
-def _folded_vertical(points, location):
-    assert not any(x == location for x, _ in points)
-    return {(x, y) if x < location else (2 * location - x, y) for x, y in points}
+def _folded_vertical(points, col):
+    assert not any(x == col for x, _ in points)
+    return {(x, y) if x < col else (2 * col - x, y) for x, y in points}
 
 
-def _folded(points, folds):
-    for direction, location in folds:
-        if direction == "y":
-            points = _folded_horizontal(points, location)
-        elif direction == "x":
-            points = _folded_vertical(points, location)
-        else:
+def _folded(points, axis, location):
+    match axis:
+        case "x":
+            return _folded_vertical(points, location)
+        case "y":
+            return _folded_horizontal(points, location)
+        case _:
             assert False
-    return points
 
 
 def _format_points(points):
@@ -165,14 +161,15 @@ def _decode_points(points, path=()):
 def solution_1(path):
     points = _read_points(path)
     folds = _read_folds(path)
-    return len(_folded(points, folds[:1]))
+    return len(_folded(points, *folds[0]))
 
 
 def solution_2(path):
     points = _read_points(path)
     folds = _read_folds(path)
-    folded = _folded(points, folds)
-    return _decode_points(folded)
+    for fold in folds:
+        points = _folded(points, *fold)
+    return _decode_points(points)
 
 
 @pytest.mark.parametrize(
