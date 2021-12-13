@@ -1,7 +1,10 @@
+black
 fire
+isort
 matplotlib
 more_itertools
 numpy
 pandas
 pip_tools
+pytest
 seaborn
