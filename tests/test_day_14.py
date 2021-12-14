@@ -12,7 +12,8 @@ INPUTS_PATH = pathlib.Path(__file__).with_suffix("")
 
 
 def _read_template(path: pathlib.Path):
-    return list(more_itertools.first(path.read_text().splitlines()))
+    line = more_itertools.first(path.read_text().splitlines()) + " "
+    return collections.Counter(more_itertools.pairwise(line))
 
 
 def _read_rules(path: pathlib.Path):
@@ -23,52 +24,39 @@ def _read_rules(path: pathlib.Path):
 
 
 def _insert(polymer, rules):
-    return list(
-        more_itertools.flatten(
-            [
-                [a, rules[a, b]] if (a, b) in rules else [a]
-                for a, b in more_itertools.pairwise(polymer)
-            ]
-        )
-    ) + [polymer[-1]]
+    result = collections.defaultdict(int)
+    for (l, r), v in rules.items():
+        result[l, v] += polymer[l, r]
+        result[v, r] += polymer[l, r]
+    return result
 
 
-def _insert_repeatedly(polymer, rules, n):
-    return polymer
+def _score(polymer):
+    counter = collections.defaultdict(int)
+    for (l, _), v in polymer.items():
+        counter[l] += v
+    lo, hi = more_itertools.minmax(counter.values())
+    return hi - lo
 
 
 def solution_1(path):
     polymer = _read_template(path)
     rules = _read_rules(path)
-    # assert "".join(polymer) == "NNCB"
-    # # 1
-    # polymer = _insert(polymer, rules)
-    # assert "".join(polymer) == "NCNBCHB"
-    # # 2
-    # polymer = _insert(polymer, rules)
-    # assert "".join(polymer) == "NBCCNBBBCBHCB"
-    # # 3
-    # polymer = _insert(polymer, rules)
-    # assert "".join(polymer) == "NBBBCNCCNBBNBNBBCHBHHBCHB"
-    # # 4
-    # polymer = _insert(polymer, rules)
-    # assert "".join(polymer) == "NBBNBNBBCCNBCNCCNBBNBBNBBBNBBNBBCBHCBHHNHCBBCBHCB"
-    # # 5
-    # polymer = _insert(polymer, rules)
-    # assert len(polymer) == 97
 
     for _ in range(10):
-        print("".join(polymer))
         polymer = _insert(polymer, rules)
-    # assert len(polymer) == 3073
 
-    counter = collections.Counter(polymer)
-    lo, hi = more_itertools.minmax(counter.values())
-    return hi - lo
+    return _score(polymer)
 
 
 def solution_2(path):
-    raise NotImplementedError
+    polymer = _read_template(path)
+    rules = _read_rules(path)
+
+    for _ in range(40):
+        polymer = _insert(polymer, rules)
+
+    return _score(polymer)
 
 
 @pytest.mark.parametrize(
@@ -85,8 +73,8 @@ def test_part_1_on_examples(stem, expected):
 @pytest.mark.parametrize(
     "stem, expected",
     [
-        ("example", "O"),
-        ("input", "PZEHRAER"),
+        ("example", 2188189693529),
+        ("input", 2884513602164),
     ],
 )
 def test_part_2_on_examples(stem, expected):
