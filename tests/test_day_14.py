@@ -25,16 +25,24 @@ def _read_rules(path: pathlib.Path):
 
 def _insert(polymer, rules):
     result = collections.defaultdict(int)
-    for (l, r), v in rules.items():
-        result[l, v] += polymer[l, r]
-        result[v, r] += polymer[l, r]
+    for (left, right), count in polymer.items():
+        try:
+            middle = rules[left, right]
+            result[left, middle] += count
+            result[middle, right] += count
+        except KeyError:
+            result[left, right] = count
     return result
 
 
-def _score(polymer):
-    counter = collections.defaultdict(int)
+def _count_elements(polymer):
+    result = collections.defaultdict(int)
     for (l, _), v in polymer.items():
-        counter[l] += v
+        result[l] += v
+    return result
+
+
+def _score(counter):
     lo, hi = more_itertools.minmax(counter.values())
     return hi - lo
 
@@ -42,21 +50,17 @@ def _score(polymer):
 def solution_1(path):
     polymer = _read_template(path)
     rules = _read_rules(path)
-
     for _ in range(10):
         polymer = _insert(polymer, rules)
-
-    return _score(polymer)
+    return _score(_count_elements(polymer))
 
 
 def solution_2(path):
     polymer = _read_template(path)
     rules = _read_rules(path)
-
     for _ in range(40):
         polymer = _insert(polymer, rules)
-
-    return _score(polymer)
+    return _score(_count_elements(polymer))
 
 
 @pytest.mark.parametrize(
