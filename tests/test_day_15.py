@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import heapq
 import logging
 import pathlib
 import textwrap
@@ -32,17 +33,17 @@ def _neighbors(row_num, col_num, max_row, max_col):
 
 
 def _optimal_path_risk(levels):
-    frontier = {(0, 0)}
+    frontier = []
+    heapq.heappush(frontier, (0, (0, 0)))
     optima = {(0, 0): 0}
     dst = max(levels)
     while dst not in optima:
-        prev = min(frontier, key=lambda k: optima[k])
-        frontier.remove(prev)
-        for curr in _neighbors(*prev, *dst):
-            prev_optimum = optima[prev]
-            if curr not in optima or prev_optimum + levels[curr] < optima[curr]:
-                optima[curr] = prev_optimum + levels[curr]
-                frontier.add(curr)
+        prev_v, prev_k = heapq.heappop(frontier)
+        for curr_k in _neighbors(*prev_k, *dst):
+            if curr_k not in optima or prev_v + levels[curr_k] < optima[curr_k]:
+                curr_v = prev_v + levels[curr_k]
+                optima[curr_k] = curr_v
+                heapq.heappush(frontier, (curr_v, curr_k))
     return optima[dst]
 
 
