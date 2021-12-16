@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import dataclasses
 import enum
+import functools
 import logging
+import operator
 import pathlib
-from typing import Sequence
+from typing import Sequence, Union
 
 import more_itertools
 import pytest
@@ -43,9 +45,36 @@ class OperatorPackage(Package):
         for package in self.subpackages:
             yield from package.version_numbers()
 
+    @property
+    def value(self):
+        values = [p.value for p in self.subpackages]
+        if self.type_id == 0:
+            return sum(values)
+        elif self.type_id == 1:
+            return functools.reduce(operator.mul, values)
+        elif self.type_id == 2:
+            return min(values)
+        elif self.type_id == 3:
+            return max(values)
+        elif self.type_id == 5:
+            return int(operator.gt(*values))
+        elif self.type_id == 6:
+            return int(operator.lt(*values))
+        elif self.type_id == 7:
+            return int(operator.eq(*values))
+        else:
+            assert False
+
 
 class TypeId(enum.IntEnum):
+    SUM = 0
+    PRODUCT = 1
+    MINIMUM = 2
+    MAXIMUM = 3
     LITERAL = 4
+    GREATER_THAN = 5
+    LESS_THAN = 6
+    EQUAL_TO = 7
 
 
 def _take_package(digits):
@@ -102,8 +131,14 @@ def solution_1(path):
     return sum(package.version_numbers())
 
 
-def solution_2(path):
-    raise NotImplementedError
+def solution_2(arg: Union[str, pathlib.Path]):
+    if isinstance(arg, pathlib.Path):
+        digits = _binary_digits(_read_input(arg))
+    else:
+        digits = _binary_digits(arg)
+
+    _, package = _take_package(digits)
+    return package.value
 
 
 @pytest.mark.parametrize(
@@ -123,8 +158,7 @@ def test_part_1_on_examples(stem, expected):
 @pytest.mark.parametrize(
     "stem, expected",
     [
-        ("example", 315),
-        ("input", 2858),
+        ("input", 2536453523344),
     ],
 )
 def test_part_2_on_examples(stem, expected):
@@ -157,3 +191,20 @@ def test_take_operator_1():
     assert package.subpackages[0].value == 1
     assert package.subpackages[1].value == 2
     assert package.subpackages[2].value == 3
+
+
+@pytest.mark.parametrize(
+    "digits, expected",
+    [
+        ("C200B40A82", 3),
+        ("04005AC33890", 54),
+        ("880086C3E88112", 7),
+        ("CE00C43D881120", 9),
+        ("D8005AC2A8F0", 1),
+        ("F600BC2D8F", 0),
+        ("9C005AC2F8F0", 0),
+        ("9C0141080250320F1802104A08", 1),
+    ],
+)
+def test_part_2_on_text_examples(digits, expected):
+    assert solution_2(digits) == expected
