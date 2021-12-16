@@ -5,7 +5,7 @@ import functools
 import logging
 import operator
 import pathlib
-from typing import Sequence, Union
+from typing import Sequence
 
 import more_itertools
 import pytest
@@ -14,12 +14,8 @@ logger = logging.getLogger(__name__)
 INPUTS_PATH = pathlib.Path(__file__).with_suffix("")
 
 
-def _read_input(path: pathlib.Path) -> str:
-    return path.read_text().strip()
-
-
 def _binary_digits(hex_digits) -> str:
-    return "".join(f"{int(digit, 16):04b}" for digit in hex_digits)
+    return "".join(f"{int(digit, 16):04b}" for digit in hex_digits.strip())
 
 
 @dataclasses.dataclass(frozen=True)
@@ -135,18 +131,14 @@ def _take_operator(version, type_id, digits):
     return OperatorPackage(version, type_id, subpackages)
 
 
-def solution_1(path):
-    digits = _binary_digits(_read_input(path))
+def solution_1(puzzle_input: str):
+    digits = _binary_digits(puzzle_input)
     package = _take_package(digits)
     return sum(package.version_numbers())
 
 
-def solution_2(arg: Union[str, pathlib.Path]):
-    if isinstance(arg, pathlib.Path):
-        digits = _binary_digits(_read_input(arg))
-    else:
-        digits = _binary_digits(arg)
-
+def solution_2(puzzle_input: str):
+    digits = _binary_digits(puzzle_input)
     package = _take_package(digits)
     return package.value
 
@@ -154,15 +146,26 @@ def solution_2(arg: Union[str, pathlib.Path]):
 @pytest.mark.parametrize(
     "stem, expected",
     [
-        ("example", 16),
-        ("example_2", 12),
-        ("example_3", 23),
-        ("example_4", 31),
         ("input", 917),
     ],
 )
-def test_part_1_on_examples(stem, expected):
-    assert solution_1(INPUTS_PATH / f"{stem}.txt") == expected
+def test_part_1_on_file_examples(stem, expected):
+    path = INPUTS_PATH / f"{stem}.txt"
+    text = path.read_text()
+    assert solution_1(text) == expected
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("8A004A801A8002F478", 16),
+        ("620080001611562C8802118E34", 12),
+        ("C0015000016115A2E0802F182340", 23),
+        ("A0016C880162017C3686B18A3D4780", 31),
+    ],
+)
+def test_part_1_on_text_examples(text, expected):
+    assert solution_1(text) == expected
 
 
 @pytest.mark.parametrize(
@@ -171,8 +174,27 @@ def test_part_1_on_examples(stem, expected):
         ("input", 2536453523344),
     ],
 )
-def test_part_2_on_examples(stem, expected):
-    assert solution_2(INPUTS_PATH / f"{stem}.txt") == expected
+def test_part_2_on_file_examples(stem, expected):
+    path = INPUTS_PATH / f"{stem}.txt"
+    text = path.read_text()
+    assert solution_2(text) == expected
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("C200B40A82", 3),
+        ("04005AC33890", 54),
+        ("880086C3E88112", 7),
+        ("CE00C43D881120", 9),
+        ("D8005AC2A8F0", 1),
+        ("F600BC2D8F", 0),
+        ("9C005AC2F8F0", 0),
+        ("9C0141080250320F1802104A08", 1),
+    ],
+)
+def test_part_2_on_text_examples(text, expected):
+    assert solution_2(text) == expected
 
 
 def test_expand_to_binary():
@@ -197,20 +219,3 @@ def test_take_operator_1():
     assert package.subpackages[0].value == 1
     assert package.subpackages[1].value == 2
     assert package.subpackages[2].value == 3
-
-
-@pytest.mark.parametrize(
-    "digits, expected",
-    [
-        ("C200B40A82", 3),
-        ("04005AC33890", 54),
-        ("880086C3E88112", 7),
-        ("CE00C43D881120", 9),
-        ("D8005AC2A8F0", 1),
-        ("F600BC2D8F", 0),
-        ("9C005AC2F8F0", 0),
-        ("9C0141080250320F1802104A08", 1),
-    ],
-)
-def test_part_2_on_text_examples(digits, expected):
-    assert solution_2(digits) == expected
