@@ -44,22 +44,23 @@ class OperatorPackage(Package):
     @property
     def value(self):
         values = [p.value for p in self.subpackages]
-        if self.type_id == 0:
-            return sum(values)
-        elif self.type_id == 1:
-            return functools.reduce(operator.mul, values)
-        elif self.type_id == 2:
-            return min(values)
-        elif self.type_id == 3:
-            return max(values)
-        elif self.type_id == 5:
-            return int(operator.gt(*values))
-        elif self.type_id == 6:
-            return int(operator.lt(*values))
-        elif self.type_id == 7:
-            return int(operator.eq(*values))
-        else:
-            assert False
+        match self.type_id:
+            case 0:
+                return sum(values)
+            case 1:
+                return functools.reduce(operator.mul, values)
+            case 2:
+                return min(values)
+            case 3:
+                return max(values)
+            case 5:
+                return int(operator.gt(*values))
+            case 6:
+                return int(operator.lt(*values))
+            case 7:
+                return int(operator.eq(*values))
+            case _:
+                assert False
 
 
 class TypeId(enum.IntEnum):
