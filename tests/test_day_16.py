@@ -78,8 +78,9 @@ class TypeId(enum.IntEnum):
 
 
 def _take_package(digits):
-    digits, version = _take_int_fix_len(digits, 3)
-    digits, type_id = _take_int_fix_len(digits, 3)
+    digits = iter(digits)
+    version = _take_int_fix_len(digits, 3)
+    type_id = _take_int_fix_len(digits, 3)
     if type_id == TypeId.LITERAL.value:
         return _take_literal(version, type_id, digits)
     else:
@@ -87,7 +88,7 @@ def _take_package(digits):
 
 
 def _take_int_fix_len(digits, num_digit):
-    return digits[num_digit:], int(digits[:num_digit], 2)
+    return int("".join(more_itertools.take(num_digit, digits)), 2)
 
 
 def _take_int_var_len(digits):
@@ -97,48 +98,46 @@ def _take_int_var_len(digits):
         if segment[0] == "0":
             break
 
-    value = int("".join(segments), 2)
-    digits = digits[len(segments) * 5 :]
-    return digits, value
+    return int("".join(segments), 2)
 
 
 def _take_literal(version, type_id, digits):
-    digits, value = _take_int_var_len(digits)
-    return digits, LiteralPackage(version, type_id, value)
+    value = _take_int_var_len(digits)
+    return LiteralPackage(version, type_id, value)
 
 
 def _take_packages_num_bit(digits, num_bit):
-    allotment, digits = digits[:num_bit], digits[num_bit:]
+    allotment = more_itertools.peekable(more_itertools.take(num_bit, digits))
     subpackages = []
     while allotment:
-        allotment, subpackage = _take_package(allotment)
+        subpackage = _take_package(allotment)
         subpackages.append(subpackage)
-    return digits, subpackages
+    return subpackages
 
 
 def _take_packages_num_package(digits, num_package):
     subpackages = []
     for i in range(num_package):
-        digits, subpackage = _take_package(digits)
+        subpackage = _take_package(digits)
         subpackages.append(subpackage)
-    return digits, subpackages
+    return subpackages
 
 
 def _take_operator(version, type_id, digits):
-    digits, length_type_id = _take_int_fix_len(digits, 1)
+    length_type_id = _take_int_fix_len(digits, 1)
     if length_type_id == 0:
-        digits, length = _take_int_fix_len(digits, 15)
-        digits, subpackages = _take_packages_num_bit(digits, length)
+        length = _take_int_fix_len(digits, 15)
+        subpackages = _take_packages_num_bit(digits, length)
     else:
-        digits, num_subpackage = _take_int_fix_len(digits, 11)
-        digits, subpackages = _take_packages_num_package(digits, num_subpackage)
+        num_subpackage = _take_int_fix_len(digits, 11)
+        subpackages = _take_packages_num_package(digits, num_subpackage)
 
-    return digits, OperatorPackage(version, type_id, subpackages)
+    return OperatorPackage(version, type_id, subpackages)
 
 
 def solution_1(path):
     digits = _binary_digits(_read_input(path))
-    _, package = _take_package(digits)
+    package = _take_package(digits)
     return sum(package.version_numbers())
 
 
@@ -148,7 +147,7 @@ def solution_2(arg: Union[str, pathlib.Path]):
     else:
         digits = _binary_digits(arg)
 
-    _, package = _take_package(digits)
+    package = _take_package(digits)
     return package.value
 
 
@@ -181,24 +180,20 @@ def test_expand_to_binary():
 
 
 def test_take_literal():
-    residual, package = _take_package("110100101111111000101000")
-    assert (residual, package.value) == ("000", 2021)
+    package = _take_package("110100101111111000101000")
+    assert package.value == 2021
 
 
 def test_take_operator_0():
-    residual, package = _take_package(
-        "00111000000000000110111101000101001010010001001000000000"
-    )
+    package = _take_package("00111000000000000110111101000101001010010001001000000000")
     assert isinstance(package, OperatorPackage)
-    assert (residual, len(package.subpackages)) == ("0000000", 2)
+    assert len(package.subpackages) == 2
 
 
 def test_take_operator_1():
-    residual, package = _take_package(
-        "11101110000000001101010000001100100000100011000001100000"
-    )
+    package = _take_package("11101110000000001101010000001100100000100011000001100000")
     assert isinstance(package, OperatorPackage)
-    assert (residual, len(package.subpackages)) == ("00000", 3)
+    assert len(package.subpackages) == 3
     assert package.subpackages[0].value == 1
     assert package.subpackages[1].value == 2
     assert package.subpackages[2].value == 3
