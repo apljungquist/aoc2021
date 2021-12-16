@@ -78,15 +78,19 @@ class TypeId(enum.IntEnum):
 
 
 def _take_package(digits):
-    version = int(digits[:3], 2)
-    type_id = int(digits[3:6], 2)
+    digits, version = _take_int_fix_len(digits, 3)
+    digits, type_id = _take_int_fix_len(digits, 3)
     if type_id == TypeId.LITERAL.value:
-        return _take_literal(version, type_id, digits[6:])
+        return _take_literal(version, type_id, digits)
     else:
-        return _take_operator(version, type_id, digits[6:])
+        return _take_operator(version, type_id, digits)
 
 
-def _take_literal(version, type_id, digits):
+def _take_int_fix_len(digits, num_digit):
+    return digits[num_digit:], int(digits[:num_digit], 2)
+
+
+def _take_int_var_len(digits):
     segments = []
     for segment in more_itertools.chunked(digits, 5):
         segments.append("".join(segment[1:]))
@@ -94,35 +98,42 @@ def _take_literal(version, type_id, digits):
             break
 
     value = int("".join(segments), 2)
+    digits = digits[len(segments) * 5 :]
+    return digits, value
 
-    num_consumed = len(segments) * 5
-    # while num_consumed % 4:
-    #     num_consumed += 1
-    residual = digits[num_consumed:]
 
-    return residual, LiteralPackage(version, type_id, value)
+def _take_literal(version, type_id, digits):
+    digits, value = _take_int_var_len(digits)
+    return digits, LiteralPackage(version, type_id, value)
+
+
+def _take_packages_num_bit(digits, num_bit):
+    allotment, digits = digits[:num_bit], digits[num_bit:]
+    subpackages = []
+    while allotment:
+        allotment, subpackage = _take_package(allotment)
+        subpackages.append(subpackage)
+    return digits, subpackages
+
+
+def _take_packages_num_package(digits, num_package):
+    subpackages = []
+    for i in range(num_package):
+        digits, subpackage = _take_package(digits)
+        subpackages.append(subpackage)
+    return digits, subpackages
 
 
 def _take_operator(version, type_id, digits):
-    length_type_id = int(digits[0], 2)
+    digits, length_type_id = _take_int_fix_len(digits, 1)
     if length_type_id == 0:
-        length = int(digits[1:16], 2)
-        residual = digits[16 : 16 + length]
-        subpackages = []
-        while residual:
-            residual, subpackage = _take_package(residual)
-            subpackages.append(subpackage)
-
-        residual = digits[16 + length :]
+        digits, length = _take_int_fix_len(digits, 15)
+        digits, subpackages = _take_packages_num_bit(digits, length)
     else:
-        num_subpackage = int(digits[1:12], 2)
-        subpackages = []
-        residual = digits[12:]
-        for i in range(num_subpackage):
-            residual, subpackage = _take_package(residual)
-            subpackages.append(subpackage)
+        digits, num_subpackage = _take_int_fix_len(digits, 11)
+        digits, subpackages = _take_packages_num_package(digits, num_subpackage)
 
-    return residual, OperatorPackage(version, type_id, subpackages)
+    return digits, OperatorPackage(version, type_id, subpackages)
 
 
 def solution_1(path):
