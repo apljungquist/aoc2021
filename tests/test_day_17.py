@@ -61,7 +61,17 @@ def solution_1(puzzle_input: str):
 
 
 def solution_2(puzzle_input: str):
-    raise NotImplementedError
+    tgt = _target_area(puzzle_input)
+    num_h = 0
+    for dx in range(1, tgt[1] + 1):
+        for dy in range(tgt[2] - 1, 1000):
+            try:
+                h = _simulate(dx, dy, tgt)
+            except RuntimeError:
+                pass
+            if h is not None:
+                num_h += 1
+    return num_h
 
 
 @pytest.mark.parametrize(
@@ -86,8 +96,8 @@ def test_part_1_on_text_examples(text, expected):
 @pytest.mark.parametrize(
     "stem, expected",
     [
-        ("example", 2536453523344),
-        ("input", 2536453523344),
+        ("example", 112),
+        ("input", 2555),
     ],
 )
 def test_part_2_on_file_examples(stem, expected):
