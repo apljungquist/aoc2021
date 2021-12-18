@@ -1,5 +1,7 @@
+import itertools
 import logging
 import math
+import operator
 import pathlib
 import textwrap
 
@@ -152,7 +154,13 @@ def solution_1(puzzle_input: str):
 
 
 def solution_2(puzzle_input: str):
-    ...
+    numbers = _parse_input(puzzle_input)
+    magnitudes = sum(
+        ([(_magnitude(_added(*v)), v), (_magnitude(_added(*v[::-1])), v)]
+         for v in itertools.combinations(numbers, 2)), start=[]
+    )
+
+    return max(map(operator.itemgetter(0), magnitudes))
 
 
 @pytest.mark.parametrize(
@@ -181,7 +189,7 @@ def test_part_1_on_file_examples(stem, expected):
             [1,[[[9,3],9],[[9,0],[0,7]]]]
             [[[5,[7,4]],7],1]
             [[[[4,2],2],6],[8,7]]"""),
-        3488,),
+         3488,),
     ],
 )
 def test_part_1_on_text_examples(text, expected):
@@ -191,8 +199,8 @@ def test_part_1_on_text_examples(text, expected):
 @pytest.mark.parametrize(
     "stem, expected",
     [
-        # ("example", 112),
-        # ("input", 2555),
+        ("example", 3993),
+        ("input", 4695),
     ],
 )
 def test_part_2_on_file_examples(stem, expected):
