@@ -1,3 +1,4 @@
+import functools
 import itertools
 import logging
 import math
@@ -14,15 +15,10 @@ def _read_input(stem: str) -> str:
     return (pathlib.Path(__file__).with_suffix("") / f"{stem}.txt").read_text()
 
 
-def _deflated(inflated):
-    if isinstance(inflated, int):
-        yield None, inflated
-        return
-
-    yield True, None
-    for x in inflated:
-        yield from _deflated(x)
-    yield False, None
+def _deflated(obj):
+    if isinstance(obj, int):
+        return [obj]
+    return ["["] + functools.reduce(operator.add, map(_deflated, obj)) + ["]"]
 
 
 def _inflated(deflated, first=True):
@@ -30,47 +26,46 @@ def _inflated(deflated, first=True):
         deflated = iter(deflated)
         next(deflated)
     result = []
-    for increase, number in deflated:
-        if number is None:
-            if increase:
-                result.append(_inflated(deflated, False))
-            else:
-                break
+    for token in deflated:
+        if token == "[":
+            result.append(_inflated(deflated, False))
+        elif token == "]":
+            break
         else:
-            result.append(number)
+            assert isinstance(token, int)
+            result.append(token)
     return result
 
 
-def _exploded(number):
-    before = list(_deflated(number))
-
+def _exploded(tokens):
     depth = 0
-    after = before
-    for i, (increase, _) in enumerate(before):
-        if increase is not None:
-            if increase:
-                depth += 1
-            else:
-                depth -= 1
+    for i, token in enumerate(tokens):
+        if token == "[":
+            depth += 1
+            continue
+
+        if token == "]":
+            depth -= 1
             continue
 
         if depth < 5:
             continue
 
         assert depth == 5
-        assert increase is None or increase is False
+        assert isinstance(token, int)
+        result = tokens.copy()
 
         for j in range(i - 1, -1, -1):
-            if after[j][1] is not None:
-                after[j] = (None, after[j][1] + after[i][1])
+            if isinstance(tokens[j], int):
+                result[j] = tokens[j] + tokens[i]
                 l = 0
                 break
         else:
             l = 0
 
-        for j in range(i + 2, len(after)):
-            if after[j][1] is not None:
-                after[j] = (None, after[j][1] + after[i + 1][1])
+        for j in range(i + 2, len(tokens)):
+            if isinstance(tokens[j], int):
+                result[j] = tokens[j] + tokens[i + 1]
                 r = 0
                 break
         else:
@@ -79,42 +74,30 @@ def _exploded(number):
         if l is r is None:
             infix = []
         else:
-            infix = [(None, l)]
+            infix = [l]
 
-        after = before[: i - 1] + infix + before[i + 3:]
-        break
+        return result[: i - 1] + infix + result[i + 3:]
 
-    result = _inflated(after)
-    return result
+    return tokens
 
 
-def _split(number):
-    if isinstance(number, int):
-        if number <= 9:
-            return number
-        return [int(math.floor(number / 2)), int(math.ceil(number / 2))]
-    assert isinstance(number, list)
-    for i, x in enumerate(number):
-        y = _split(x)
-        if x != y:
-            return number[:i] + [y] + number[i + 1:]
-    return number
+def _split(tokens):
+    for i, token in enumerate(tokens):
+        if isinstance(token, int) and 9 < token:
+            return tokens[:i] + ["[", int(math.floor(token / 2)), int(math.ceil(token / 2)), "]"] + tokens[i + 1:]
+    return tokens
 
 
 def _added(left, right):
-    x = [left, right]
-    # print()
-    # print("x", x)
+    x = ["["] + left + right + ["]"]
     while True:
         y = _exploded(x)
         if x != y:
             x = y
-            # print("e", y)
             continue
         y = _split(x)
         if x != y:
             x = y
-            # print("s", y)
             continue
         break
     return x
@@ -128,20 +111,15 @@ def _magnitude(number):
 
 
 def _parse_input(text):
-    lut = {
-        "[": (True, None),
-        "]": (False, None),
-    }
-    result = []
-    for line in text.splitlines():
-        deflated = [
-            lut[v] if v in lut else
-            (None, int(v))
-            for v in line.strip()
-            if v != ","
+    return [
+        [
+            int(c) if c in "0123456789"
+            else c
+            for c in line
+            if c != ","
         ]
-        result.append(_inflated(deflated))
-    return result
+        for line in text.splitlines()
+    ]
 
 
 def solution_1(puzzle_input: str):
@@ -150,13 +128,13 @@ def solution_1(puzzle_input: str):
     for right in numbers[1:]:
         left = _added(left, right)
 
-    return _magnitude(left)
+    return _magnitude(_inflated(left))
 
 
 def solution_2(puzzle_input: str):
     numbers = _parse_input(puzzle_input)
     magnitudes = sum(
-        ([(_magnitude(_added(*v)), v), (_magnitude(_added(*v[::-1])), v)]
+        ([(_magnitude(_inflated(_added(*v))), v), (_magnitude(_inflated(_added(*v[::-1]))), v)]
          for v in itertools.combinations(numbers, 2)), start=[]
     )
 
@@ -241,7 +219,7 @@ def test_part_2_on_text_examples(text, expected):
     ],
 )
 def test_exploded(number, expected):
-    assert _exploded(number) == expected
+    assert _inflated(_exploded(_deflated(number))) == expected
 
 
 @pytest.mark.parametrize(
@@ -278,7 +256,7 @@ def test_deflated_inflated(number):
     ],
 )
 def test_split(number, expected):
-    assert _split(number) == expected
+    assert _inflated(_split(_deflated(number))) == expected
 
 
 @pytest.mark.parametrize(
@@ -292,7 +270,7 @@ def test_split(number, expected):
     ],
 )
 def test_added(left, right, expected):
-    assert _added(left, right) == expected
+    assert _inflated(_added(_deflated(left), _deflated(right))) == expected
 
 
 @pytest.mark.parametrize(
