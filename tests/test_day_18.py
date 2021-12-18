@@ -58,25 +58,14 @@ def _exploded(tokens):
         for j in range(i - 1, -1, -1):
             if isinstance(tokens[j], int):
                 result[j] = tokens[j] + tokens[i]
-                l = 0
                 break
-        else:
-            l = 0
 
         for j in range(i + 2, len(tokens)):
             if isinstance(tokens[j], int):
                 result[j] = tokens[j] + tokens[i + 1]
-                r = 0
                 break
-        else:
-            r = 0
 
-        if l is r is None:
-            infix = []
-        else:
-            infix = [l]
-
-        return result[: i - 1] + infix + result[i + 3:]
+        return result[: i - 1] + [0] + result[i + 3:]
 
     return tokens
 
