@@ -31,22 +31,24 @@ def _match_one_on_fingerprint(references, candidates):
                     rotation, translation, result = _pose(reference, candidate)
                 except ValueError:
                     continue
-                return candidate_num, result, candidate_fp
+                return candidate_num, result, candidate_fp, translation
     raise ValueError
 
 
 def _match_all_on_fingerprint(scanners):
     done = {0: (scanners[0], _fingerprint(scanners[0]))}
     remaining = {k: (v, _fingerprints(v)) for k, v in scanners.items() if k != 0}
+    translations = []
     aggregate = scanners[0]
     while remaining:
-        candidate_num, candidate, fingerprint = _match_one_on_fingerprint(
+        candidate_num, candidate, fingerprint, translation = _match_one_on_fingerprint(
             done, remaining
         )
+        translations.append(translation)
         aggregate = aggregate | candidate
         done[candidate_num] = (candidate, fingerprint)
         del remaining[candidate_num]
-    return aggregate, done
+    return aggregate, done, translations
 
 
 class Point(NamedTuple):
@@ -56,6 +58,9 @@ class Point(NamedTuple):
 
     def __sub__(self, other):
         return Point(self.x - other.x, self.y - other.y, self.z - other.z)
+
+    def manhattan(self):
+        return sum(map(abs, self))
 
 
 def _read_input(stem: str) -> str:
@@ -177,12 +182,16 @@ def _match_all(scanners):
 def solution_1(puzzle_input: str):
     scanners = _parse_input(puzzle_input)
     # aggregate, done = _match_all(scanners)
-    aggregate, done = _match_all_on_fingerprint(scanners)
+    aggregate, done, _ = _match_all_on_fingerprint(scanners)
     return len(aggregate)
 
 
 def solution_2(puzzle_input: str):
-    ...
+    scanners = _parse_input(puzzle_input)
+    # aggregate, done = _match_all(scanners)
+    aggregate, done, translations = _match_all_on_fingerprint(scanners)
+    distances = [(p - q).manhattan() for p in translations for q in translations]
+    return max(distances)
 
 
 @pytest.mark.parametrize(
@@ -207,8 +216,8 @@ def test_part_1_on_text_examples(text, expected):
 @pytest.mark.parametrize(
     "stem, expected",
     [
-        # ("example", 3993),
-        # ("input", 4695),
+        ("example", 3621),
+        ("input", 10864),
     ],
 )
 def test_part_2_on_file_examples(stem, expected):
