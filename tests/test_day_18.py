@@ -65,7 +65,7 @@ def _exploded(tokens):
                 result[j] = tokens[j] + tokens[i + 1]
                 break
 
-        return result[: i - 1] + [0] + result[i + 3:]
+        return result[: i - 1] + [0] + result[i + 3 :]
 
     return tokens
 
@@ -73,7 +73,11 @@ def _exploded(tokens):
 def _split(tokens):
     for i, token in enumerate(tokens):
         if isinstance(token, int) and 9 < token:
-            return tokens[:i] + ["[", int(math.floor(token / 2)), int(math.ceil(token / 2)), "]"] + tokens[i + 1:]
+            return (
+                tokens[:i]
+                + ["[", int(math.floor(token / 2)), int(math.ceil(token / 2)), "]"]
+                + tokens[i + 1 :]
+            )
     return tokens
 
 
@@ -101,12 +105,7 @@ def _magnitude(number):
 
 def _parse_input(text):
     return [
-        [
-            int(c) if c in "0123456789"
-            else c
-            for c in line
-            if c != ","
-        ]
+        [int(c) if c in "0123456789" else c for c in line if c != ","]
         for line in text.splitlines()
     ]
 
@@ -123,8 +122,14 @@ def solution_1(puzzle_input: str):
 def solution_2(puzzle_input: str):
     numbers = _parse_input(puzzle_input)
     magnitudes = sum(
-        ([(_magnitude(_inflated(_added(*v))), v), (_magnitude(_inflated(_added(*v[::-1]))), v)]
-         for v in itertools.combinations(numbers, 2)), start=[]
+        (
+            [
+                (_magnitude(_inflated(_added(*v))), v),
+                (_magnitude(_inflated(_added(*v[::-1]))), v),
+            ]
+            for v in itertools.combinations(numbers, 2)
+        ),
+        start=[],
     )
 
     return max(map(operator.itemgetter(0), magnitudes))
@@ -144,8 +149,9 @@ def test_part_1_on_file_examples(stem, expected):
 @pytest.mark.parametrize(
     "text, expected",
     [
-        (textwrap.dedent(
-            """\
+        (
+            textwrap.dedent(
+                """\
             [[[0,[4,5]],[0,0]],[[[4,5],[2,6]],[9,5]]]
             [7,[[[3,7],[4,3]],[[6,3],[8,8]]]]
             [[2,[[0,8],[3,4]]],[[[6,7],1],[7,[1,6]]]]
@@ -155,8 +161,10 @@ def test_part_1_on_file_examples(stem, expected):
             [2,9]
             [1,[[[9,3],9],[[9,0],[0,7]]]]
             [[[5,[7,4]],7],1]
-            [[[[4,2],2],6],[8,7]]"""),
-         3488,),
+            [[[[4,2],2],6],[8,7]]"""
+            ),
+            3488,
+        ),
     ],
 )
 def test_part_1_on_text_examples(text, expected):
@@ -186,24 +194,24 @@ def test_part_2_on_text_examples(text, expected):
     "number, expected",
     [
         (
-                [[[[[9, 8], 1], 2], 3], 4],
-                [[[[0, 9], 2], 3], 4],
+            [[[[[9, 8], 1], 2], 3], 4],
+            [[[[0, 9], 2], 3], 4],
         ),
         (
-                [7, [6, [5, [4, [3, 2]]]]],
-                [7, [6, [5, [7, 0]]]],
+            [7, [6, [5, [4, [3, 2]]]]],
+            [7, [6, [5, [7, 0]]]],
         ),
         (
-                [[6, [5, [4, [3, 2]]]], 1],
-                [[6, [5, [7, 0]]], 3],
+            [[6, [5, [4, [3, 2]]]], 1],
+            [[6, [5, [7, 0]]], 3],
         ),
         (
-                [[3, [2, [1, [7, 3]]]], [6, [5, [4, [3, 2]]]]],
-                [[3, [2, [8, 0]]], [9, [5, [4, [3, 2]]]]],
+            [[3, [2, [1, [7, 3]]]], [6, [5, [4, [3, 2]]]]],
+            [[3, [2, [8, 0]]], [9, [5, [4, [3, 2]]]]],
         ),
         (
-                [[3, [2, [8, 0]]], [9, [5, [4, [3, 2]]]]],
-                [[3, [2, [8, 0]]], [9, [5, [7, 0]]]],
+            [[3, [2, [8, 0]]], [9, [5, [4, [3, 2]]]]],
+            [[3, [2, [8, 0]]], [9, [5, [7, 0]]]],
         ),
     ],
 )
@@ -235,12 +243,12 @@ def test_deflated_inflated(number):
     "number, expected",
     [
         (
-                [[[[0, 7], 4], [15, [0, 13]]], [1, 1]],
-                [[[[0, 7], 4], [[7, 8], [0, 13]]], [1, 1]],
+            [[[[0, 7], 4], [15, [0, 13]]], [1, 1]],
+            [[[[0, 7], 4], [[7, 8], [0, 13]]], [1, 1]],
         ),
         (
-                [[[[0, 7], 4], [[7, 8], [0, 13]]], [1, 1]],
-                [[[[0, 7], 4], [[7, 8], [0, [6, 7]]]], [1, 1]],
+            [[[[0, 7], 4], [[7, 8], [0, 13]]], [1, 1]],
+            [[[[0, 7], 4], [[7, 8], [0, [6, 7]]]], [1, 1]],
         ),
     ],
 )
@@ -252,9 +260,9 @@ def test_split(number, expected):
     "left, right, expected",
     [
         (
-                [[[[4, 3], 4], 4], [7, [[8, 4], 9]]],
-                [1, 1],
-                [[[[0, 7], 4], [[7, 8], [6, 0]]], [8, 1]],
+            [[[[4, 3], 4], 4], [7, [[8, 4], 9]]],
+            [1, 1],
+            [[[[0, 7], 4], [[7, 8], [6, 0]]], [8, 1]],
         )
     ],
 )
