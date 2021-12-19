@@ -2,7 +2,6 @@ import logging
 import pathlib
 import re
 import textwrap
-from pprint import pprint
 from typing import NamedTuple
 
 import more_itertools
@@ -155,40 +154,14 @@ def _pose(reference, candidate, threshold=12):
     raise ValueError
 
 
-def _match_one(references, candidates):
-    for reference_num, reference in references.items():
-        for candidate_num, candidate in candidates.items():
-            try:
-                rotation, translation, result = _pose(reference, candidate)
-            except ValueError:
-                continue
-            return candidate_num, result
-    raise ValueError
-
-
-def _match_all(scanners):
-    done = {0: scanners[0]}
-    remaining = {k: v for k, v in scanners.items() if k != 0}
-    aggregate = scanners[0]
-    while remaining:
-        print(len(aggregate))
-        candidate_num, candidate = _match_one(done, remaining)
-        aggregate = aggregate | candidate
-        done[candidate_num] = candidate
-        del remaining[candidate_num]
-    return aggregate, done
-
-
 def solution_1(puzzle_input: str):
     scanners = _parse_input(puzzle_input)
-    # aggregate, done = _match_all(scanners)
     aggregate, done, _ = _match_all_on_fingerprint(scanners)
     return len(aggregate)
 
 
 def solution_2(puzzle_input: str):
     scanners = _parse_input(puzzle_input)
-    # aggregate, done = _match_all(scanners)
     aggregate, done, translations = _match_all_on_fingerprint(scanners)
     distances = [(p - q).manhattan() for p in translations for q in translations]
     return max(distances)
@@ -312,9 +285,6 @@ def test_rotate(candidate_text):
 
 
 def test_there_are_24_unique_rotations():
-    # assert len(set(_rotations())) == 24
-    # assert more_itertools.ilen(_rotations()) == 24
-    print(sorted(_rotations()))
     reference_text = textwrap.dedent(
         """\
         --- scanner 0 ---
