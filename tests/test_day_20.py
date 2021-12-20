@@ -54,7 +54,6 @@ def _enhanced_1(img, lut, padding):
 def _enhanced_n(img, lut, n):
     padding = False
     for _ in range(n):
-        print(sum(img.values()))
         img, padding = _enhanced_1(img, lut, padding)
     assert padding is False  # or counting light pixels would not make sense
     return img
@@ -72,7 +71,9 @@ def solution_1(puzzle_input: str):
 
 
 def solution_2(puzzle_input: str):
-    ...
+    lut, img_in = _parse_input(puzzle_input)
+    img_out = _enhanced_n(img_in, lut, 50)
+    return sum(img_out.values())
 
 
 @pytest.mark.parametrize(
@@ -97,8 +98,8 @@ def test_part_1_on_text_examples(text, expected):
 @pytest.mark.parametrize(
     "stem, expected",
     [
-        # ("example", 3621),
-        # ("input", 10864),
+        ("example", 3351),
+        ("input", 17965),
     ],
 )
 def test_part_2_on_file_examples(stem, expected):
