@@ -4,9 +4,9 @@ import collections
 import logging
 import math
 import pathlib
-from pprint import pprint
 from typing import Any, Dict, Iterator, List
 
+import more_itertools
 import pytest
 
 logger = logging.getLogger(__name__)
@@ -102,20 +102,17 @@ def _move_from_hallway(hallway: Dict[int, str], rooms: Dict[str, List[str]], pat
             making_progress = True
 
 
-def _solve2(
+def _solve(
     hallway: Dict[int, str],
     rooms: Dict[str, List[str]],
-    cost: int = 0,
-    best=math.inf,
-    path=[],
+    cost: int,
+    best,
+    path,
 ) -> Iterator[Any]:
     _move_from_hallway(hallway, rooms, path)
     if not hallway and all(v == k for k, vs in rooms.items() for v in vs):
         yield path, cost
         return
-
-    # First result should be optimal
-    # items = sorted([(k, v) for k, v in rooms.items() if v], key=lambda obj: obj[1][0])
 
     for src, occupants in rooms.items():
         if all(src == occupant for occupant in occupants):
@@ -133,7 +130,7 @@ def _solve2(
             ]
             if best <= new_cost:
                 continue
-            for returning_path, returning_best in _solve2(
+            for returning_path, returning_best in _solve(
                 new_hallway, new_rooms, new_cost, best, new_path
             ):
                 if returning_best < best:
@@ -141,22 +138,9 @@ def _solve2(
                     yield returning_path, returning_best
 
 
-def _penalty(rooms):
-    departure_penalties = {
-        room: MULTIPLIERS[occupants[1]]
-        for room, occupants in rooms.items()
-        if room != occupants[1]
-    }
-    arrival_penalties = {
-        room: MULTIPLIERS[room]
-        for room, occupants in rooms.items()
-        if room != occupants[1]
-    }
-    return sum(departure_penalties.values()) + sum(arrival_penalties.values())
-
-
 def _departure_penalty(occupants, room):
-    """
+    """Return cost of moving to fron of room
+
     >>> _departure_penalty(list("BDDA"), "A")
     3000
     >>> _departure_penalty(list("CCBD"), "B")
@@ -175,7 +159,8 @@ def _departure_penalty(occupants, room):
 
 
 def _arrival_penalty(occupants, room):
-    """
+    """Return cost of moving from front of room
+
     >>> _arrival_penalty(list("BDDA"), "A")
     3
     >>> _arrival_penalty(list("CCBD"), "B")
@@ -193,9 +178,10 @@ def _arrival_penalty(occupants, room):
     return result
 
 
-def _penalty2(rooms):
-    """
-    >>> _penalty2({"A":list("BDDA"),"B":list("CCBD"),"C":list("BBAC"),"D":list("DACA")})
+def _penalty(rooms):
+    """Return cost of moving to and from front of room
+
+    >>> _penalty({"A":list("BDDA"),"B":list("CCBD"),"C":list("BBAC"),"D":list("DACA")})
     12699
     """
     departure_penalties = {
@@ -211,31 +197,51 @@ def _penalty2(rooms):
     return sum(departure_penalties.values()) + sum(arrival_penalties.values())
 
 
-def _solution(puzzle_input, part_one):
-    rooms = {k: list(v) for k, v in puzzle_input.items()}
-    penalty = _penalty2(rooms)
-    if part_one:
-        assert penalty == _penalty(rooms)
-    print(penalty)
-    for path, cost in _solve2({}, rooms):
-        print(cost)
-    pprint(path)
+def _min_cost_of_solution(rooms):
+    penalty = _penalty(rooms)
+    _, cost = more_itertools.last(_solve({}, rooms, 0, math.inf, []))
     return cost + penalty
 
 
+def _rooms(text: str):
+    lines = text.splitlines()[2:-1]
+    result = {
+        "A": [],
+        "B": [],
+        "C": [],
+        "D": [],
+    }
+    for line in lines:
+        result["A"].append(line[3])
+        result["B"].append(line[5])
+        result["C"].append(line[7])
+        result["D"].append(line[9])
+    return result
+
+
 def solution_1(puzzle_input: str):
-    return _solution(puzzle_input, True)
+    rooms = _rooms(puzzle_input)
+    return _min_cost_of_solution(rooms)
 
 
 def solution_2(puzzle_input: str):
-    return _solution(puzzle_input, False)
+    rooms = _rooms(puzzle_input)
+    infixes = {
+        "A": "DD",
+        "B": "CB",
+        "C": "BA",
+        "D": "AC",
+    }
+    for room, infix in infixes.items():
+        rooms[room][1:1] = list(infix)
+    return _min_cost_of_solution(rooms)
 
 
 @pytest.mark.parametrize(
     "stem, expected",
     [
-        # ("example", 590784),
-        # ("input", 527915),
+        ("example", 12521),
+        ("input", 14510),
     ],
 )
 def test_part_1_on_file_examples(stem, expected):
@@ -245,10 +251,7 @@ def test_part_1_on_file_examples(stem, expected):
 
 @pytest.mark.parametrize(
     "text, expected",
-    [
-        ({"A": "BA", "B": "CD", "C": "BC", "D": "DA"}, 12521),
-        ({"A": "BC", "B": "AD", "C": "BD", "D": "CA"}, 14510),
-    ],
+    [],
 )
 def test_part_1_on_text_examples(text, expected):
     assert solution_1(text) == expected
@@ -257,8 +260,8 @@ def test_part_1_on_text_examples(text, expected):
 @pytest.mark.parametrize(
     "stem, expected",
     [
-        # ("example_l", 2758514936282235),
-        # ("input", 1218645427221987),
+        ("example", 44169),
+        ("input", 49180),
     ],
 )
 def test_part_2_on_file_examples(stem, expected):
@@ -267,10 +270,7 @@ def test_part_2_on_file_examples(stem, expected):
 
 @pytest.mark.parametrize(
     "text, expected",
-    [
-        ({"A": "BDDA", "B": "CCBD", "C": "BBAC", "D": "DACA"}, 44169),
-        ({"A": "BDDC", "B": "ACBD", "C": "BBAD", "D": "CACA"}, 49180),
-    ],
+    [],
 )
 def test_part_2_on_text_examples(text, expected):
     assert solution_2(text) == expected
