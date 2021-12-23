@@ -128,7 +128,10 @@ def _solve(
             new_path = path + [
                 (amphipod, src, str(location), cost_out, cost_in, new_cost)
             ]
-            if best <= new_cost:
+            projected_cost = new_cost + 4 * sum(
+                MULTIPLIERS[v] for k, vs in new_rooms.items() for v in vs if v != k
+            )
+            if best < projected_cost:
                 continue
             for returning_path, returning_best in _solve(
                 new_hallway, new_rooms, new_cost, best, new_path
