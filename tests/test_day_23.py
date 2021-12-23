@@ -11,13 +11,6 @@ import pytest
 
 logger = logging.getLogger(__name__)
 
-# #############
-# #01234567890#
-# ###A#B#C#D###
-#   #A#B#C#D#
-#   #########
-
-
 LOCATIONS = [i for i in range(11) if i not in {2, 4, 6, 8}]
 
 
@@ -66,13 +59,6 @@ MULTIPLIERS = {
 }
 
 
-# BLOCKING = {
-#     (room, hallway): set(range(hallway+1, LUT[room])) | set(range(LUT[room]+1, hallway))
-#     for room in "ABCD"
-#     for hallway in range(11)
-# }
-
-
 def _read_input(stem: str) -> str:
     return (pathlib.Path(__file__).with_suffix("") / f"{stem}.txt").read_text()
 
@@ -95,50 +81,6 @@ def _possible_hallway_locations(hallway, room):
 
 def _cost(location, room, amphipod):
     return DISTANCES[(room, location)] * MULTIPLIERS[amphipod]
-
-
-def _solve(
-    hallway: Dict[int, str], rooms: Dict[str, str], path=(), cost=0, best=math.inf
-):
-    assert len(path) <= 16
-    if not hallway and all(v == k for k, vs in rooms.items() for v in vs):
-        yield path, cost
-        return
-
-    # Move into rooms
-
-    # Move into hallway
-    for room, occupants in rooms.items():
-        if not occupants:
-            continue
-        if all(room == v for v in occupants):
-            continue
-        amphipod = occupants[0]
-        for location in _possible_hallway_locations(hallway, room):
-            new_hallway = hallway | {location: amphipod}
-            new_rooms = {k: v if k != room else v[1:] for k, v in rooms.items()}
-            marginal_cost = _cost(location, room, amphipod)
-            new_cost = cost + marginal_cost
-            projected_cost = new_cost + sum(
-                _cost(rooms, k, v, v) for k, v in new_hallway.items()
-            )
-            new_path = path + (
-                (
-                    amphipod,
-                    room,
-                    str(location),
-                    marginal_cost,
-                    new_cost,
-                    projected_cost,
-                ),
-            )
-            if best < projected_cost:
-                continue
-            for returning_path, returning_best in _solve(
-                new_hallway, new_rooms, new_path, new_cost, best
-            ):
-                best = min(best, returning_best)
-                yield returning_path, best
 
 
 def _move_from_hallway(hallway: Dict[int, str], rooms: Dict[str, List[str]], path):
@@ -213,18 +155,80 @@ def _penalty(rooms):
     return sum(departure_penalties.values()) + sum(arrival_penalties.values())
 
 
-def solution_1(puzzle_input: str):
-    print()
-    penalty = _penalty(puzzle_input)
+def _departure_penalty(occupants, room):
+    """
+    >>> _departure_penalty(list("BDDA"), "A")
+    3000
+    >>> _departure_penalty(list("CCBD"), "B")
+    3120
+    >>> _departure_penalty(list("BBAC"), "C")
+    12
+    >>> _departure_penalty(list("DACA"), "D")
+    204
+    """
+    result = 0
+    for i, curr in enumerate(occupants):
+        if all(late == room for late in occupants[i:]):
+            continue
+        result += MULTIPLIERS[curr] * i
+    return result
+
+
+def _arrival_penalty(occupants, room):
+    """
+    >>> _arrival_penalty(list("BDDA"), "A")
+    3
+    >>> _arrival_penalty(list("CCBD"), "B")
+    60
+    >>> _arrival_penalty(list("BBAC"), "C")
+    300
+    >>> _arrival_penalty(list("DACA"), "D")
+    6000
+    """
+    result = 0
+    for i, curr in enumerate(occupants):
+        if all(late == room for late in occupants[i:]):
+            continue
+        result += MULTIPLIERS[room] * i
+    return result
+
+
+def _penalty2(rooms):
+    """
+    >>> _penalty2({"A":list("BDDA"),"B":list("CCBD"),"C":list("BBAC"),"D":list("DACA")})
+    12699
+    """
+    departure_penalties = {
+        room: _departure_penalty(occupants, room)
+        for room, occupants in rooms.items()
+        if room != occupants[1]
+    }
+    arrival_penalties = {
+        room: _arrival_penalty(occupants, room)
+        for room, occupants in rooms.items()
+        if room != occupants[1]
+    }
+    return sum(departure_penalties.values()) + sum(arrival_penalties.values())
+
+
+def _solution(puzzle_input, part_one):
+    rooms = {k: list(v) for k, v in puzzle_input.items()}
+    penalty = _penalty2(rooms)
+    if part_one:
+        assert penalty == _penalty(rooms)
     print(penalty)
-    for path, cost in _solve2({}, puzzle_input):
-        pprint(cost)
+    for path, cost in _solve2({}, rooms):
+        print(cost)
     pprint(path)
     return cost + penalty
 
 
+def solution_1(puzzle_input: str):
+    return _solution(puzzle_input, True)
+
+
 def solution_2(puzzle_input: str):
-    ...
+    return _solution(puzzle_input, False)
 
 
 @pytest.mark.parametrize(
@@ -242,8 +246,8 @@ def test_part_1_on_file_examples(stem, expected):
 @pytest.mark.parametrize(
     "text, expected",
     [
-        ({"A": ["B", "A"], "B": ["C", "D"], "C": ["B", "C"], "D": ["D", "A"]}, 12521),
-        ({"A": ["B", "C"], "B": ["A", "D"], "C": ["B", "D"], "D": ["C", "A"]}, 14510),
+        ({"A": "BA", "B": "CD", "C": "BC", "D": "DA"}, 12521),
+        ({"A": "BC", "B": "AD", "C": "BD", "D": "CA"}, 14510),
     ],
 )
 def test_part_1_on_text_examples(text, expected):
@@ -263,7 +267,10 @@ def test_part_2_on_file_examples(stem, expected):
 
 @pytest.mark.parametrize(
     "text, expected",
-    [],
+    [
+        ({"A": "BDDA", "B": "CCBD", "C": "BBAC", "D": "DACA"}, 44169),
+        ({"A": "BDDC", "B": "ACBD", "C": "BBAD", "D": "CACA"}, 49180),
+    ],
 )
 def test_part_2_on_text_examples(text, expected):
     assert solution_2(text) == expected
