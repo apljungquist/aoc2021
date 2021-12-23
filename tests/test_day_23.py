@@ -9,44 +9,68 @@ from typing import Dict, List
 import pytest
 
 logger = logging.getLogger(__name__)
+door_locations = {
+    "A": 2,
+    "B": 4,
+    "C": 6,
+    "D": 8,
+}
 
-LOCATIONS = [i for i in range(11) if i not in {2, 4, 6, 8}]
+
+def _left_locations():
+    result = {}
+    for room in "ABCD":
+        start = door_locations[room]
+        result[room] = [
+            i for i in range(start - 1, -1, -1) if i not in door_locations.values()
+        ]
+    return result
+
+
+def _right_locations():
+    result = {}
+    for room in "ABCD":
+        start = door_locations[room]
+        result[room] = [
+            i for i in range(start + 1, 11) if i not in door_locations.values()
+        ]
+    return result
+
+
+LEFT_LOCATIONS = _left_locations()
+RIGHT_LOCATIONS = _right_locations()
 
 
 def _blocking():
-    lut = {
-        "A": 2,
-        "B": 4,
-        "C": 6,
-        "D": 8,
-    }
     result = collections.defaultdict(set)
     for room in "ABCD":
         for location in range(11):
-            if location in {2, 4, 6, 8}:
+            if location in door_locations.values():
                 continue
-            for blocking in range(location + 1, lut[room]):
+
+            for blocking in range(location + 1, door_locations[room]):
+                if blocking in door_locations.values():
+                    continue
                 result[room, location].add(blocking)
-            for blocking in range(lut[room], location):
+
+            for blocking in range(door_locations[room], location):
+                if blocking in door_locations.values():
+                    continue
                 result[room, location].add(blocking)
     return result
 
 
 def _distances():
-    lut = {
-        "A": 2,
-        "B": 4,
-        "C": 6,
-        "D": 8,
-    }
     result = {}
     for room in "ABCD":
         for room2 in "ABCD":
-            result[room, room2] = max(4, abs(lut[room] - lut[room2]) + 2)
+            result[room, room2] = max(
+                4, abs(door_locations[room] - door_locations[room2]) + 2
+            )
         for location in range(11):
             if location in {2, 4, 6, 8}:
                 continue
-            result[(room, location)] = abs(lut[room] - location) + 1
+            result[(room, location)] = abs(door_locations[room] - location) + 1
     return result
 
 
@@ -72,11 +96,13 @@ def _blocked(hallway, location, room):
 
 
 def _possible_hallway_locations(hallway, room):
-    for location in LOCATIONS:
+    for location in LEFT_LOCATIONS[room]:
         if location in hallway:
-            continue  # occupied
-        if _blocked(hallway, location, room):
-            continue
+            break
+        yield location
+    for location in RIGHT_LOCATIONS[room]:
+        if location in hallway:
+            break
         yield location
 
 
@@ -85,21 +111,21 @@ def _cost(location, room, amphipod):
 
 
 def _move_from_hallway(hallway: Dict[int, str], rooms: Dict[str, List[str]]):
-    making_progress = True
-    while making_progress:
-        making_progress = False
-        for src, amphipod in list(hallway.items()):
-            dst = amphipod  # Can only move to one room
-            occupants = rooms[dst]
-
-            if occupants and any(occupant != amphipod for occupant in occupants):
-                continue  # Can only move into room with similar
-
+    while True:
+        # Can only move to one room so the amphipod is the destination
+        for src, dst in hallway.items():
             if _blocked(hallway, src, dst):
                 continue
 
-            rooms[dst].insert(0, hallway.pop(src))
-            making_progress = True
+            occupants = rooms[dst]
+            if occupants and any(occupant != dst for occupant in occupants):
+                continue  # Can only move into room with similar
+
+            break
+        else:
+            return
+
+        rooms[dst].insert(0, hallway.pop(src))
 
 
 def _min_cost_from_hallway(
@@ -122,11 +148,10 @@ def _min_cost_from_hallway(
     best_cost = math.inf
     for src, occupants in rooms.items():
         if all(src == occupant for occupant in occupants):
-            continue  # Do not touch completed rooms
+            continue  # Do not move amphipods out of ordered rooms
 
         amphipod = occupants[0]
         for location in _possible_hallway_locations(hallway, src):
-            new_hallway = hallway | {location: amphipod}
             new_rooms = {k: v[:] if k != src else v[1:] for k, v in rooms.items()}
             # Cost of returning is already determined once we move into the corridor
             # By adding more cost early we should be able to prune paths earlier
@@ -137,7 +162,7 @@ def _min_cost_from_hallway(
             # that are in the wrong room must at least move the distance to the
             # correct room. The bound could be made tighter by accounting for amphipods
             # that are in the right room but will need to move to let out other
-            # amphipods. That is however a lot more fiddly and more expensive so I do
+            # amphipods. That is however a lot more fiddly and more expensive, so I do
             # not bother.
             min_downstream_cost = sum(
                 DISTANCES[k, v] * MULTIPLIERS[v]
@@ -149,6 +174,7 @@ def _min_cost_from_hallway(
             if best_total_cost <= min_total_cost:
                 continue
 
+            new_hallway = hallway | {location: amphipod}
             downstream_cost = _min_cost_from_hallway(
                 new_hallway,
                 new_rooms,
