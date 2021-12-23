@@ -21,6 +21,9 @@ none:
 	@echo No target specified
 
 
+fix_format:
+	isort tests/*.py *.py && black tests/*.py *.py --target-version py310
+
 # Nouns
 # =====
 
