@@ -4,9 +4,8 @@ import collections
 import logging
 import math
 import pathlib
-from typing import Any, Dict, Iterator, List
+from typing import Dict, List
 
-import more_itertools
 import pytest
 
 logger = logging.getLogger(__name__)
@@ -42,6 +41,8 @@ def _distances():
     }
     result = {}
     for room in "ABCD":
+        for room2 in "ABCD":
+            result[room, room2] = max(4, abs(lut[room] - lut[room2]) + 2)
         for location in range(11):
             if location in {2, 4, 6, 8}:
                 continue
@@ -83,7 +84,7 @@ def _cost(location, room, amphipod):
     return DISTANCES[(room, location)] * MULTIPLIERS[amphipod]
 
 
-def _move_from_hallway(hallway: Dict[int, str], rooms: Dict[str, List[str]], path):
+def _move_from_hallway(hallway: Dict[int, str], rooms: Dict[str, List[str]]):
     making_progress = True
     while making_progress:
         making_progress = False
@@ -97,23 +98,28 @@ def _move_from_hallway(hallway: Dict[int, str], rooms: Dict[str, List[str]], pat
             if _blocked(hallway, src, dst):
                 continue
 
-            path.append((amphipod, str(src), dst, _cost(src, dst, amphipod)))
             rooms[dst].insert(0, hallway.pop(src))
             making_progress = True
 
 
-def _solve(
+def _min_cost_from_hallway(
     hallway: Dict[int, str],
     rooms: Dict[str, List[str]],
-    cost: int,
-    best,
-    path,
-) -> Iterator[Any]:
-    _move_from_hallway(hallway, rooms, path)
-    if not hallway and all(v == k for k, vs in rooms.items() for v in vs):
-        yield path, cost
-        return
+    cache,
+    upstream_cost=0,
+    best_total_cost=math.inf,
+) -> int:
+    cache_key = tuple(hallway.items()) + tuple(map(tuple, rooms.values()))
+    try:
+        return cache[cache_key]
+    except KeyError:
+        pass
 
+    _move_from_hallway(hallway, rooms)
+    if not hallway and all(v == k for k, vs in rooms.items() for v in vs):
+        return 0
+
+    best_cost = math.inf
     for src, occupants in rooms.items():
         if all(src == occupant for occupant in occupants):
             continue  # Do not touch completed rooms
@@ -122,27 +128,45 @@ def _solve(
         for location in _possible_hallway_locations(hallway, src):
             new_hallway = hallway | {location: amphipod}
             new_rooms = {k: v[:] if k != src else v[1:] for k, v in rooms.items()}
-            cost_out = _cost(location, src, amphipod)
-            cost_in = _cost(location, amphipod, amphipod)
-            new_cost = cost + cost_out + cost_in
-            new_path = path + [
-                (amphipod, src, str(location), cost_out, cost_in, new_cost)
-            ]
-            projected_cost = new_cost + 4 * sum(
-                MULTIPLIERS[v] for k, vs in new_rooms.items() for v in vs if v != k
+            # Cost of returning is already determined once we move into the corridor
+            # By adding more cost early we should be able to prune paths earlier
+            marginal_cost = _cost(location, src, amphipod) + _cost(
+                location, amphipod, amphipod
             )
-            if best < projected_cost:
+            # In addition to the move we are about to make, all remaining amphipods
+            # that are in the wrong room must at least move the distance to the
+            # correct room. The bound could be made tighter by accounting for amphipods
+            # that are in the right room but will need to move to let out other
+            # amphipods. That is however a lot more fiddly and more expensive so I do
+            # not bother.
+            min_downstream_cost = sum(
+                DISTANCES[k, v] * MULTIPLIERS[v]
+                for k, vs in new_rooms.items()
+                for v in vs
+                if v != k
+            )
+            min_total_cost = upstream_cost + marginal_cost + min_downstream_cost
+            if best_total_cost <= min_total_cost:
                 continue
-            for returning_path, returning_best in _solve(
-                new_hallway, new_rooms, new_cost, best, new_path
-            ):
-                if returning_best < best:
-                    best = returning_best
-                    yield returning_path, returning_best
+
+            downstream_cost = _min_cost_from_hallway(
+                new_hallway,
+                new_rooms,
+                cache,
+                upstream_cost + marginal_cost,
+                best_total_cost,
+            )
+            cost = marginal_cost + downstream_cost
+            if cost < best_cost:
+                best_cost = cost
+                best_total_cost = upstream_cost + cost
+
+    cache[cache_key] = best_cost
+    return best_cost
 
 
 def _departure_penalty(occupants, room):
-    """Return cost of moving to fron of room
+    """Return cost of moving to front of room
 
     >>> _departure_penalty(list("BDDA"), "A")
     3000
@@ -181,10 +205,10 @@ def _arrival_penalty(occupants, room):
     return result
 
 
-def _penalty(rooms):
+def _min_cost_from_rooms(rooms):
     """Return cost of moving to and from front of room
 
-    >>> _penalty({"A":list("BDDA"),"B":list("CCBD"),"C":list("BBAC"),"D":list("DACA")})
+    >>> _min_cost_from_rooms({"A":list("BDDA"),"B":list("CCBD"),"C":list("BBAC"),"D":list("DACA")})
     12699
     """
     departure_penalties = {
@@ -201,9 +225,14 @@ def _penalty(rooms):
 
 
 def _min_cost_of_solution(rooms):
-    penalty = _penalty(rooms)
-    _, cost = more_itertools.last(_solve({}, rooms, 0, math.inf, []))
-    return cost + penalty
+    # Observe that all amphipods that are not in the correct position at the outset will
+    # at least have to move to the door (actually outside the door but for some reason
+    # I cannot get the costs right).
+    rooms_cost = _min_cost_from_rooms(rooms)
+    # Solve the rest of the problem as if the rooms are a single spot with room for
+    # multiple amphipods.
+    hallway_cost = _min_cost_from_hallway({}, rooms, {})
+    return rooms_cost + hallway_cost
 
 
 def _rooms(text: str):
