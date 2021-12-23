@@ -4,7 +4,7 @@ import collections
 import logging
 import math
 import pathlib
-from typing import Dict, List
+from typing import Dict, Tuple
 
 import pytest
 
@@ -106,11 +106,7 @@ def _possible_hallway_locations(hallway, room):
         yield location
 
 
-def _cost(location, room, amphipod):
-    return DISTANCES[(room, location)] * MULTIPLIERS[amphipod]
-
-
-def _move_from_hallway(hallway: Dict[int, str], rooms: Dict[str, List[str]]):
+def _move_from_hallway(hallway: Dict[int, str], rooms: Dict[str, Tuple[str, ...]]):
     while True:
         # Can only move to one room so the amphipod is the destination
         for src, dst in hallway.items():
@@ -125,17 +121,17 @@ def _move_from_hallway(hallway: Dict[int, str], rooms: Dict[str, List[str]]):
         else:
             return
 
-        rooms[dst].insert(0, hallway.pop(src))
+        rooms[dst] = (hallway.pop(src),) + rooms[dst]
 
 
 def _min_cost_from_hallway(
     hallway: Dict[int, str],
-    rooms: Dict[str, List[str]],
+    rooms: Dict[str, Tuple[str, ...]],
     cache,
     upstream_cost=0,
     best_total_cost=math.inf,
 ) -> int:
-    cache_key = tuple(hallway.items()) + tuple(map(tuple, rooms.values()))
+    cache_key = tuple(hallway.items()) + tuple(rooms.values())
     try:
         return cache[cache_key]
     except KeyError:
@@ -152,12 +148,12 @@ def _min_cost_from_hallway(
 
         amphipod = occupants[0]
         for location in _possible_hallway_locations(hallway, src):
-            new_rooms = {k: v[:] if k != src else v[1:] for k, v in rooms.items()}
+            new_rooms = rooms | {src: rooms[src][1:]}
             # Cost of returning is already determined once we move into the corridor
             # By adding more cost early we should be able to prune paths earlier
-            marginal_cost = _cost(location, src, amphipod) + _cost(
-                location, amphipod, amphipod
-            )
+            marginal_cost = (
+                DISTANCES[src, location] + DISTANCES[amphipod, location]
+            ) * MULTIPLIERS[amphipod]
             # In addition to the move we are about to make, all remaining amphipods
             # that are in the wrong room must at least move the distance to the
             # correct room. The bound could be made tighter by accounting for amphipods
@@ -251,6 +247,7 @@ def _min_cost_from_rooms(rooms):
 
 
 def _min_cost_of_solution(rooms):
+    rooms = {k: tuple(vs) for k, vs in rooms.items()}
     # Observe that all amphipods that are not in the correct position at the outset will
     # at least have to move to the door (actually outside the door but for some reason
     # I cannot get the costs right).
