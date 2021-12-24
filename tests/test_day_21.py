@@ -21,16 +21,11 @@ assert sum(DIE.values()) == 27
 
 def _play2(positions, scores, hero, num_universe):
     for num_step, multiplier in DIE.items():
-        assert 0 < multiplier
-        assert 3 <= num_step <= 9
         new_num_universe = multiplier * num_universe
 
-        position = positions[hero] + num_step
-        while position > 10:
-            position -= 10
-        assert 1 <= position <= 10
+        position = (positions[hero] + num_step)%10
 
-        score = scores[hero] + position
+        score = scores[hero] + position + 1
         if 21 <= score:
             yield hero, new_num_universe
             continue
@@ -45,15 +40,13 @@ def _play2(positions, scores, hero, num_universe):
 
 def solution_1(puzzle_input: str):
     dice = (i % 100 + 1 for i in itertools.count())
-    positions = list(puzzle_input)
+    positions = [p-1 for p in puzzle_input]
     scores = [0, 0]
     for i in itertools.count():
         player = i % 2
         steps = sum(more_itertools.take(3, dice))
-        positions[player] = positions[player] + steps
-        while positions[player] > 10:
-            positions[player] -= 10
-        scores[player] += positions[player]
+        positions[player] = (positions[player] + steps)%10
+        scores[player] += positions[player] + 1
         if scores[player] >= 1000:
             break
     return (i + 1) * 3 * scores[(i + 1) % 2]
@@ -65,8 +58,8 @@ def solution_2(puzzle_input: str):
         True: 0,
     }
     positions = {
-        False: puzzle_input[0],
-        True: puzzle_input[1],
+        False: puzzle_input[0]-1,
+        True: puzzle_input[1]-1,
     }
     scores = {
         False: 0,
