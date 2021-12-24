@@ -66,29 +66,34 @@ def _run_program(subroutines, digits):
     return z
 
 
-def _recursive_search(subroutines, old_z=0, old_path=()):
+def _recursive_search(subroutines, old_z=0, old_path=(), reverse=True):
     if not subroutines:
         if not old_z:
             yield old_path
         return
 
-    for digit in range(9, 0, -1):
+    if reverse:
+        digits = range(9, 0, -1)
+    else:
+        digits = range(1, 10)
+
+    for digit in digits:
         new_z = _run_subroutine2(subroutines[0], old_z, digit)
         if int(subroutines[0][4][2]) == 26:
             new = format_base26(new_z)
             old = format_base26(old_z)
             if len(old) <= len(new):
                 continue
-        yield from _recursive_search(subroutines[1:], new_z, old_path + (digit,))
+        yield from _recursive_search(
+            subroutines[1:], new_z, old_path + (digit,), reverse
+        )
 
 
 def solution_1(puzzle_input: str):
     print()
     instructions = _instructions(puzzle_input)
     subroutines = list(more_itertools.chunked(instructions, 18))
-    for digits in _recursive_search(subroutines):
-        print("".join(map(str, digits)))
-        break
+    digits = more_itertools.first(_recursive_search(subroutines, reverse=True))
     return int("".join(map(str, digits)))
 
 
@@ -96,8 +101,7 @@ def solution_2(puzzle_input: str):
     print()
     instructions = _instructions(puzzle_input)
     subroutines = list(more_itertools.chunked(instructions, 18))
-    for digits in _recursive_search(subroutines):
-        print("".join(map(str, digits)))
+    digits = more_itertools.first(_recursive_search(subroutines, reverse=False))
     return int("".join(map(str, digits)))
 
 
