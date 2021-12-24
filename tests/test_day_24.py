@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import itertools
+import dataclasses
+import functools
 import logging
 import pathlib
-import re
+from typing import Sequence
 
 import more_itertools
 import pytest
@@ -13,57 +14,48 @@ logger = logging.getLogger(__name__)
 
 def _instructions(text: str):
     return [line.strip().split() for line in text.splitlines()]
+
+
+@dataclasses.dataclass(frozen=True)
+class Subroutine:
+    b: int
+    c: int
+    f: int
+
+    @staticmethod
+    def from_instructions(instructions):
+        assert instructions[4][0] == "div"
+        b = int(instructions[4][2])
+        assert instructions[5][0] == "add"
+        c = int(instructions[5][2])
+        assert instructions[15][0] == "add"
+        f = int(instructions[15][2])
+        return Subroutine(b, c, f)
+
+    def __call__(self, w, z):
+        x = (z % 26) + self.c != w
+        ya = 25 * x + 1
+        yb = (w + self.f) * x
+        return (z // self.b) * ya + yb
+
+
+def _subroutines(instructions):
     return [
-        tuple(m) for m in re.findall(r"^(\w+) (-+\d+) ?(-?\d+)?$", text, re.MULTILINE)
+        Subroutine.from_instructions(chunk)
+        for chunk in more_itertools.chunked(instructions, 18)
     ]
 
 
-# def _run_program(instructions, inputs):
-#     registers = {"w": 0, "x": 0, "y": 0, "z": 0}
-#     inputs = iter(inputs)
-#     for instruction in instructions:
-#         match instruction[0]:
-#             case
-def _run_subroutine(a, b, c, d, e, f, z, digit):
-    w = digit
-    x = (z % 26) + c != w
-    ya = 25 * x + 1
-    yb = (w + f) * x
-    result = (z // b) * ya + yb
-    return result
-
-
-def _run_subroutine2(subroutine, z, digit):
-    assert subroutine[3][0] == "mod"
-    a = int(subroutine[3][2])
-    assert subroutine[4][0] == "div"
-    b = int(subroutine[4][2])
-    assert subroutine[5][0] == "add"
-    c = int(subroutine[5][2])
-    assert subroutine[9][0] == "add"
-    d = int(subroutine[9][2])
-    assert subroutine[11][0] == "add"
-    e = int(subroutine[11][2])
-    assert subroutine[15][0] == "add"
-    f = int(subroutine[15][2])
-    return _run_subroutine(a, b, c, d, e, f, z, digit)
-
-
-def format_base26(number):
-    letters = []
+def _fmt_int(number: int, digits: Sequence[str]) -> str:
+    base = len(digits)
+    indices = []
     while number:
-        letters.insert(0, f"({number % 25:02}) ")
-        letters.insert(0, chr(65 + number % 26))
-        number //= 26
-    return "".join(letters)
+        indices.append(number % base)
+        number //= base
+    return "".join(digits[i] for i in indices[::-1])
 
 
-def _run_program(subroutines, digits):
-    z = 0
-    for digit, subroutine in itertools.zip_longest(digits, subroutines):
-        z = _run_subroutine2(subroutine, z, digit)
-        print(digit, format_base26(z))
-    return z
+_fmt_int_b26 = functools.partial(_fmt_int, digits="ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 
 def _recursive_search(subroutines, old_z=0, old_path=(), reverse=True):
@@ -77,11 +69,11 @@ def _recursive_search(subroutines, old_z=0, old_path=(), reverse=True):
     else:
         digits = range(1, 10)
 
+    old = _fmt_int_b26(old_z)
     for digit in digits:
-        new_z = _run_subroutine2(subroutines[0], old_z, digit)
-        if int(subroutines[0][4][2]) == 26:
-            new = format_base26(new_z)
-            old = format_base26(old_z)
+        new_z = subroutines[0](digit, old_z)
+        if subroutines[0].b == 26:
+            new = _fmt_int_b26(new_z)
             if len(old) <= len(new):
                 continue
         yield from _recursive_search(
@@ -90,17 +82,13 @@ def _recursive_search(subroutines, old_z=0, old_path=(), reverse=True):
 
 
 def solution_1(puzzle_input: str):
-    print()
-    instructions = _instructions(puzzle_input)
-    subroutines = list(more_itertools.chunked(instructions, 18))
+    subroutines = _subroutines(_instructions(puzzle_input))
     digits = more_itertools.first(_recursive_search(subroutines, reverse=True))
     return int("".join(map(str, digits)))
 
 
 def solution_2(puzzle_input: str):
-    print()
-    instructions = _instructions(puzzle_input)
-    subroutines = list(more_itertools.chunked(instructions, 18))
+    subroutines = _subroutines(_instructions(puzzle_input))
     digits = more_itertools.first(_recursive_search(subroutines, reverse=False))
     return int("".join(map(str, digits)))
 
@@ -112,7 +100,6 @@ def _read_input(stem: str) -> str:
 @pytest.mark.parametrize(
     "stem, expected",
     [
-        # ("example", 12521),
         ("input", 41299994879959),
     ],
 )
@@ -132,7 +119,6 @@ def test_part_1_on_text_examples(text, expected):
 @pytest.mark.parametrize(
     "stem, expected",
     [
-        # ("example", 44169),
         ("input", 11189561113216),
     ],
 )
