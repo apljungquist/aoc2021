@@ -30,45 +30,46 @@ def _herds(text: str):
     return dict(east), dict(south)
 
 
-def _step(old_herd, east_boundary, south_boundary):
-    middle_herd = {}
-    for old_k, v in old_herd.items():
+def _step(old_east, old_south, east_boundary, south_boundary):
+    new_east = {}
+    for old_k, v in old_east.items():
         new_k = (old_k[0], (old_k[1] + 1) % east_boundary)
-        if new_k in old_herd or v != ">":
-            middle_herd[old_k] = v
+        if new_k in old_east or new_k in old_south:
+            new_east[old_k] = v
         else:
-            middle_herd[new_k] = v
+            new_east[new_k] = v
 
-    new_herd = {}
-    for old_k, v in middle_herd.items():
+    new_south = {}
+    for old_k, v in old_south.items():
         new_k = ((old_k[0] + 1) % south_boundary, old_k[1])
-        if new_k in middle_herd or v != "v":
-            new_herd[old_k] = v
+        if new_k in new_east or new_k in old_south:
+            new_south[old_k] = v
         else:
-            new_herd[new_k] = v
-
-    return new_herd
+            new_south[new_k] = v
+    return new_east, new_south
 
 
 def _simulate(new):
     old = None
 
     i = 0
-    south_boundary = max(map(operator.itemgetter(0), new)) + 1
-    east_boundary = max(map(operator.itemgetter(1), new)) + 1
+    south_boundary = (
+        max(map(operator.itemgetter(0), itertools.chain.from_iterable(new))) + 1
+    )
+    east_boundary = (
+        max(map(operator.itemgetter(1), itertools.chain.from_iterable(new))) + 1
+    )
     while old != new:
         i += 1
         old, new = new, _step(
-            new, east_boundary=east_boundary, south_boundary=south_boundary
+            *new, east_boundary=east_boundary, south_boundary=south_boundary
         )
-        if i == 1000:
-            raise Exception
     return i
 
 
 def solution_1(puzzle_input: str):
     east, south = _herds(puzzle_input)
-    return _simulate(east | south)
+    return _simulate((east, south))
 
 
 def solution_2(puzzle_input: str):
