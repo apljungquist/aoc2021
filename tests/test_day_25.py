@@ -31,21 +31,22 @@ def _herds(text: str):
 
 
 def _step(old_east, old_south, east_boundary, south_boundary):
-    new_east = {}
-    for old_k, v in old_east.items():
+    new_east = set()
+    for old_k in old_east:
         new_k = (old_k[0], (old_k[1] + 1) % east_boundary)
         if new_k in old_east or new_k in old_south:
-            new_east[old_k] = v
+            new_east.add(old_k)
         else:
-            new_east[new_k] = v
+            new_east.add(new_k)
 
-    new_south = {}
-    for old_k, v in old_south.items():
+    new_south = set()
+    for old_k in old_south:
         new_k = ((old_k[0] + 1) % south_boundary, old_k[1])
         if new_k in new_east or new_k in old_south:
-            new_south[old_k] = v
+            new_south.add(old_k)
         else:
-            new_south[new_k] = v
+            new_south.add(new_k)
+
     return new_east, new_south
 
 
@@ -69,7 +70,7 @@ def _simulate(new):
 
 def solution_1(puzzle_input: str):
     east, south = _herds(puzzle_input)
-    return _simulate((east, south))
+    return _simulate((set(east), set(south)))
 
 
 def solution_2(puzzle_input: str):
