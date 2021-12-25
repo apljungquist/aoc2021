@@ -16,16 +16,19 @@ def _instructions(text: str):
     return [line.strip().split() for line in text.splitlines()]
 
 
+RADIX = 26
+
+
 @dataclasses.dataclass(frozen=True)
 class Subroutine:
-    b: int
-    c: int
-    f: int
+    should_pop: int
+    gate_offset: int
+    source_offset: int
 
     @staticmethod
     def from_instructions(instructions):
         assert instructions[4][0] == "div"
-        b = int(instructions[4][2])
+        b = int(instructions[4][2]) == RADIX
         assert instructions[5][0] == "add"
         c = int(instructions[5][2])
         assert instructions[15][0] == "add"
@@ -33,10 +36,16 @@ class Subroutine:
         return Subroutine(b, c, f)
 
     def __call__(self, w, z):
-        x = (z % 26) + self.c != w
-        ya = 25 * x + 1
-        yb = (w + self.f) * x
-        return (z // self.b) * ya + yb
+        should_push = (z % RADIX) + self.gate_offset != w
+        match (self.should_pop, should_push):
+            case False, False:
+                return 0, z
+            case False, True:
+                return 1, z * RADIX + self.source_offset + w
+            case True, False:
+                return -1, (z // RADIX)
+            case True, True:
+                return 0, (z // RADIX) * RADIX + self.source_offset + w
 
 
 def _subroutines(instructions):
@@ -55,9 +64,6 @@ def _fmt_int(number: int, digits: Sequence[str]) -> str:
     return "".join(digits[i] for i in indices[::-1])
 
 
-_fmt_int_b26 = functools.partial(_fmt_int, digits="ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-
 def _recursive_search(subroutines, old_z=0, old_path=(), reverse=True):
     if not subroutines:
         if not old_z:
@@ -69,13 +75,10 @@ def _recursive_search(subroutines, old_z=0, old_path=(), reverse=True):
     else:
         digits = range(1, 10)
 
-    old = _fmt_int_b26(old_z)
     for digit in digits:
-        new_z = subroutines[0](digit, old_z)
-        if subroutines[0].b == 26:
-            new = _fmt_int_b26(new_z)
-            if len(old) <= len(new):
-                continue
+        delta, new_z = subroutines[0](digit, old_z)
+        if subroutines[0].should_pop and 0 <= delta:
+            continue
         yield from _recursive_search(
             subroutines[1:], new_z, old_path + (digit,), reverse
         )
