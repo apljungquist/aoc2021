@@ -24,16 +24,16 @@ def _herds(text: str):
             ((row, col), v)
             for row, line in enumerate(text.splitlines())
             for col, v in enumerate(line.strip())
-            if v in {"v", ">"}
+            if v != "."
         ],
     )
     return dict(east), dict(south)
 
 
-def _step(old_east, old_south, east_boundary, south_boundary):
+def _next_step(old_east, old_south, height, width):
     new_east = set()
     for old_k in old_east:
-        new_k = (old_k[0], (old_k[1] + 1) % east_boundary)
+        new_k = (old_k[0], (old_k[1] + 1) % width)
         if new_k in old_east or new_k in old_south:
             new_east.add(old_k)
         else:
@@ -41,7 +41,7 @@ def _step(old_east, old_south, east_boundary, south_boundary):
 
     new_south = set()
     for old_k in old_south:
-        new_k = ((old_k[0] + 1) % south_boundary, old_k[1])
+        new_k = ((old_k[0] + 1) % height, old_k[1])
         if new_k in new_east or new_k in old_south:
             new_south.add(old_k)
         else:
@@ -50,31 +50,21 @@ def _step(old_east, old_south, east_boundary, south_boundary):
     return new_east, new_south
 
 
-def _simulate(new):
+def _steps(east, south):
     old = None
+    new = east, south
 
-    i = 0
-    south_boundary = (
-        max(map(operator.itemgetter(0), itertools.chain.from_iterable(new))) + 1
-    )
-    east_boundary = (
-        max(map(operator.itemgetter(1), itertools.chain.from_iterable(new))) + 1
-    )
+    height = max(map(operator.itemgetter(0), itertools.chain(*new))) + 1
+    width = max(map(operator.itemgetter(1), itertools.chain(*new))) + 1
+
     while old != new:
-        i += 1
-        old, new = new, _step(
-            *new, east_boundary=east_boundary, south_boundary=south_boundary
-        )
-    return i
+        old, new = new, _next_step(*new, height=height, width=width)
+        yield new
 
 
 def solution_1(puzzle_input: str):
     east, south = _herds(puzzle_input)
-    return _simulate((set(east), set(south)))
-
-
-def solution_2(puzzle_input: str):
-    ...
+    return more_itertools.ilen(_steps(set(east), set(south)))
 
 
 def _read_input(stem: str) -> str:
@@ -99,22 +89,3 @@ def test_part_1_on_file_examples(stem, expected):
 )
 def test_part_1_on_text_examples(text, expected):
     assert solution_1(text) == expected
-
-
-@pytest.mark.parametrize(
-    "stem, expected",
-    [
-        # ("example", 44169),
-        # ("input", 49180),
-    ],
-)
-def test_part_2_on_file_examples(stem, expected):
-    assert solution_2(_read_input(stem)) == expected
-
-
-@pytest.mark.parametrize(
-    "text, expected",
-    [],
-)
-def test_part_2_on_text_examples(text, expected):
-    assert solution_2(text) == expected
