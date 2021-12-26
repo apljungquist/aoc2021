@@ -179,14 +179,6 @@ def test_part_1_on_file_examples(stem, expected):
 
 
 @pytest.mark.parametrize(
-    "text, expected",
-    [],
-)
-def test_part_1_on_text_examples(text, expected):
-    assert solution_1(text) == expected
-
-
-@pytest.mark.parametrize(
     "stem, expected",
     [
         ("example", 3621),
@@ -195,14 +187,6 @@ def test_part_1_on_text_examples(text, expected):
 )
 def test_part_2_on_file_examples(stem, expected):
     assert solution_2(_read_input(stem)) == expected
-
-
-@pytest.mark.parametrize(
-    "text, expected",
-    [],
-)
-def test_part_2_on_text_examples(text, expected):
-    assert solution_2(text) == expected
 
 
 @pytest.mark.parametrize(

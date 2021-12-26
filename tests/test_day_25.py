@@ -81,11 +81,3 @@ def _read_input(stem: str) -> str:
 def test_part_1_on_file_examples(stem, expected):
     actual = solution_1(_read_input(stem))
     assert actual == expected
-
-
-@pytest.mark.parametrize(
-    "text, expected",
-    [],
-)
-def test_part_1_on_text_examples(text, expected):
-    assert solution_1(text) == expected
