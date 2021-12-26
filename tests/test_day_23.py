@@ -297,6 +297,7 @@ def solution_2(puzzle_input: str):
     [
         ("example", 12521),
         ("input", 14510),
+        ("input_1", 11332),
     ],
 )
 def test_part_1_on_file_examples(stem, expected):
@@ -317,6 +318,7 @@ def test_part_1_on_text_examples(text, expected):
     [
         ("example", 44169),
         ("input", 49180),
+        ("input_1", 49936),
     ],
 )
 def test_part_2_on_file_examples(stem, expected):
