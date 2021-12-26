@@ -183,14 +183,6 @@ def test_part_2_on_file_examples(stem, expected):
 
 
 @pytest.mark.parametrize(
-    "text, expected",
-    [],
-)
-def test_part_2_on_text_examples(text, expected):
-    assert solution_2(text) == expected
-
-
-@pytest.mark.parametrize(
     "number, expected",
     [
         (

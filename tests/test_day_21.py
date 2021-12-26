@@ -2,6 +2,7 @@ import collections
 import itertools
 import logging
 import pathlib
+import re
 
 import more_itertools
 import pytest
@@ -38,9 +39,18 @@ def _play2(positions, scores, hero, num_universe):
         yield from _play2(new_positions, new_scores, not hero, new_num_universe)
 
 
+def _positions(text: str):
+    return {
+        int(m[0]): int(m[1])
+        for m in re.findall(
+            r"^Player (\d+) starting position: (\d+)$", text, re.MULTILINE
+        )
+    }
+
+
 def solution_1(puzzle_input: str):
     dice = (i % 100 + 1 for i in itertools.count())
-    positions = [p - 1 for p in puzzle_input]
+    positions = [p - 1 for _, p in _positions(puzzle_input).items()]
     scores = [0, 0]
     for i in itertools.count():
         player = i % 2
@@ -57,10 +67,7 @@ def solution_2(puzzle_input: str):
         False: 0,
         True: 0,
     }
-    positions = {
-        False: puzzle_input[0] - 1,
-        True: puzzle_input[1] - 1,
-    }
+    positions = {k == 2: v - 1 for k, v in _positions(puzzle_input).items()}
     scores = {
         False: 0,
         True: 0,
@@ -74,8 +81,8 @@ def solution_2(puzzle_input: str):
 @pytest.mark.parametrize(
     "stem, expected",
     [
-        # ("example", 35),
-        # ("input", 5571),  # not 5619, 6225
+        ("example", 739785),
+        ("input", 916083),  # not 5619, 6225
     ],
 )
 def test_part_1_on_file_examples(stem, expected):
@@ -83,30 +90,11 @@ def test_part_1_on_file_examples(stem, expected):
 
 
 @pytest.mark.parametrize(
-    "text, expected",
-    [
-        ((4, 8), 739785),
-        ((10, 2), 916083),
-    ],
-)
-def test_part_1_on_text_examples(text, expected):
-    assert solution_1(text) == expected
-
-
-@pytest.mark.parametrize(
     "stem, expected",
-    [],
+    [
+        ("example", 444356092776315),
+        ("input", 49982165861983),
+    ],
 )
 def test_part_2_on_file_examples(stem, expected):
     assert solution_2(_read_input(stem)) == expected
-
-
-@pytest.mark.parametrize(
-    "text, expected",
-    [
-        ((4, 8), 444356092776315),
-        ((10, 2), 49982165861983),
-    ],
-)
-def test_part_2_on_text_examples(text, expected):
-    assert solution_2(text) == expected

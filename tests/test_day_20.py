@@ -121,8 +121,8 @@ def solution_2(puzzle_input: str):
 @pytest.mark.parametrize(
     "stem, expected",
     [
-        # ("example", 35),
-        # ("input", 5571),  # not 5619, 6225
+        ("example", 35),
+        ("input", 5571),  # not 5619, 6225
     ],
 )
 def test_part_1_on_file_examples(stem, expected):
@@ -130,18 +130,10 @@ def test_part_1_on_file_examples(stem, expected):
 
 
 @pytest.mark.parametrize(
-    "text, expected",
-    [({1: 4, 2: 8}, 739785)],
-)
-def test_part_1_on_text_examples(text, expected):
-    assert solution_1(text) == expected
-
-
-@pytest.mark.parametrize(
     "stem, expected",
     [
-        # ("example", 3351),
-        # ("input", 17965),
+        ("example", 3351),
+        ("input", 17965),
     ],
 )
 def test_part_2_on_file_examples(stem, expected):
