@@ -11,7 +11,11 @@ import seaborn as sns
 
 
 def _rows(data):
-    offset = 18961
+    offset = {
+        "2021": 18961,
+        "2022": 19326,
+        "2023": 19691,
+    }[data["event"]]
     for member, member_data in data["members"].items():
         for day, day_data in member_data["completion_day_level"].items():
             day = int(day)
@@ -101,22 +105,23 @@ def _plot_engagement(ax, df):
     ax.get_legend().remove()
 
 
-def main(path: Union[None, str, pathlib.Path] = None):
+def main(*paths: Union[None, str, pathlib.Path]):
     """Plot difficulty and engagement for private leaderboard
 
-    :param path: Location of json dump from leaderboard api.
+    :param paths: Location of json dumps from leaderboard api.
     """
-    if path is None:
-        path = more_itertools.one(pathlib.Path.cwd().glob("*.json"))
-    else:
+    _, axs = plt.subplots(len(paths), 2, sharex=True, sharey="col")
+    if len(paths) == 1:
+        axs = [axs]
+
+    for i, path in enumerate(paths):
         path = pathlib.Path(path)
 
-    df = pd.DataFrame(_rows(json.loads(path.read_text())))
-    df["difficulty (hours)"] = df["ts"] / 3600
+        df = pd.DataFrame(_rows(json.loads(path.read_text())))
+        df["difficulty (hours)"] = df["ts"] / 3600
 
-    _, axs = plt.subplots(2, 1, sharex=True)
-    _plot_difficulty(axs[0], df)
-    _plot_engagement(axs[1], df)
+        _plot_difficulty(axs[i][0], df)
+        _plot_engagement(axs[i][1], df)
     plt.show()
 
 
